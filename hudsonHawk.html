@@ -1,0 +1,62 @@
+<html>
+<head>
+  <title>Hudson Hawk</title>
+  <style>
+  body { background-color: green; }
+  .job { position: relative; display: inline; border: 2px black solid; font-size: 200%; white-space: nowrap; }
+  .broken { background-color: darkred; left: 0px; }
+  .failed { background-color: red; left: 0px; }
+  .passed { background-color: green; left: 0px; }
+  .unknown { background-color: yellow; left: 0px; }
+  </style>
+</head>
+<body>
+<div id="jobs"></div>
+<script src="http://www.google.com/jsapi"></script>
+<script>google.load("jquery", "1.4.2"); google.load("jqueryui", "1.7.2");</script>
+
+<script>
+var Hawk = (function() {
+
+  var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
+                       blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
+  
+  var addJob = function(jobName, color) {
+    $('#jobs').append('<div id="' + jobName + '"><span class="' + (colorToState[color] || 'unknown') + ' job">' + jobName + '</span></div>');
+  };
+  
+  var awaken = function() {
+    $('#boo')
+    .animate({
+      top: "+=" + ($('body').innerHeight() - 20)
+    }, 10000);
+
+    $.ajax({
+//      url: 'http://ccmain.youdevise.com:8080/api/json',
+      url: 'http://10.108.10.155:8080/api/json',
+      dataType: 'jsonp',
+      jsonp: 'jsonp',
+      data: 'depth=1',
+      success: function(hudsonObj) {
+        $.each(hudsonObj.jobs, function(i, job) {
+          if (job.color !== 'blue' && job.color !== 'blue_anime') {
+            addJob(job.name, job.color);
+          }
+        });
+      },
+      error: function(request, status, error) {
+        alert("Error: " + status);
+      }
+    });    
+  };
+  
+  return {
+    awaken: awaken
+  };  
+})();
+
+Hawk.awaken();
+
+</script>
+</body>
+</html>
