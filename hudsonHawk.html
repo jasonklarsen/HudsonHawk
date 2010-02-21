@@ -21,33 +21,36 @@ var Hawk = (function() {
   var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
                        blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
   
-  var addJob = function(jobName, color) {
-    $('#jobs').append('<div id="' + jobName + '"><span class="' + (colorToState[color] || 'unknown') + ' job">' + jobName + '</span></div>');
-  };
-  
-  var awaken = function() {
-    $('#boo')
-    .animate({
-      top: "+=" + ($('body').innerHeight() - 20)
-    }, 10000);
-
+  var callHudsonFor = function(callback) {
     $.ajax({
 //      url: 'http://ccmain.youdevise.com:8080/api/json',
       url: 'http://10.108.10.155:8080/api/json',
       dataType: 'jsonp',
       jsonp: 'jsonp',
       data: 'depth=1',
-      success: function(hudsonObj) {
-        $.each(hudsonObj.jobs, function(i, job) {
-          if (job.color !== 'blue' && job.color !== 'blue_anime') {
-            addJob(job.name, job.color);
-          }
-        });
-      },
+      success: callback,
       error: function(request, status, error) {
         alert("Error: " + status);
       }
     });    
+  };
+  
+  var awaken = function(prey) {
+//    $('#boo')
+//    .animate({
+//      top: "+=" + ($('body').innerHeight() - 20)
+//    }, 10000);
+    callHudsonFor(starting(prey));
+  };
+  
+  var starting = function(prey) {
+    return function(hudson) {
+      $.each(hudson.jobs, function(i, job) {
+        if (job.color !== 'blue' && job.color !== 'blue_anime') {
+          prey.target(job.name, colorToState[job.color]);
+        }
+      });
+    }
   };
   
   return {
@@ -55,7 +58,24 @@ var Hawk = (function() {
   };  
 })();
 
-Hawk.awaken();
+var Prey = (function() {
+  var listing = {};
+  
+  var target = function(name, state) {
+    listing[name] = state;
+    addToRadar(name, state);
+  };
+   
+  var addToRadar = function(name, state) {
+    $('#jobs').append('<div id="' + name + '"><span class="' + (state || 'unknown') + ' job">' + name + '</span></div>');
+  };
+  
+  return {
+    target: target
+  };
+})();
+
+Hawk.awaken(Prey);
 
 </script>
 </body>
