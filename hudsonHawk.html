@@ -16,6 +16,7 @@
 <script>google.load("jquery", "1.4.2"); google.load("jqueryui", "1.7.2");</script>
 
 <script>
+/** Watcher of Hudson jobs. */
 var Hawk = (function() {
 
   var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
@@ -58,6 +59,7 @@ var Hawk = (function() {
   };  
 })();
 
+/** Hudson jobs to watch for */
 var Prey = (function() {
   var listing = {};
   
