@@ -22,23 +22,10 @@ var Hawk = (function() {
   var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
                        blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
   
-  var callHudsonFor = function(callback) {
-    $.ajax({
-//      url: 'http://ccmain.youdevise.com:8080/api/json',
-//      url: 'http://10.108.10.155:8080/api/json',
-      url: 'http://10.108.10.155:8080/view/TIM/api/json',
-      dataType: 'jsonp',
-      jsonp: 'jsonp',
-      data: 'depth=1',
-      success: callback,
-      error: function(request, status, error) {
-        alert("Error: " + status);
-      }
-    });    
-  };
-  
-  var awaken = function(prey) {
-    callHudsonFor(starting(prey));
+  var awaken = function(hudson, prey, flightPlan) {
+    flightPlan.request(hudson, function() {
+      hudson.jobsFor(starting(prey));
+    });
 //    $('#TIM-browser-IE6')
 //    .animate({
 //      top: "+=" + ($('body').innerHeight() - 20)
@@ -46,8 +33,8 @@ var Hawk = (function() {
   };
   
   var starting = function(prey) {
-    return function(hudson) {
-      $.each(hudson.jobs, function(i, job) {
+    return function(jobs) {
+      $.each(jobs, function(i, job) {
         if (job.color !== 'blue' && job.color !== 'blue_anime') {
           prey.target(job.name, colorToState[job.color]);
         }
@@ -79,7 +66,58 @@ var Prey = (function() {
   };
 })();
 
-Hawk.awaken(Prey);
+/** Configuration options */
+var FlightPlan = (function() {
+  var viewName;
+  
+  var requestViaPopup = function(hudson, callBackAfterFlightPlan) {
+    if (viewName === undefined) {
+      hudson.viewsFor(function(views) {
+        //popup for views....
+        callBackAfterFlightPlan();
+      });
+    } else {
+      callBackAfterFlightPlan();
+    }
+  };
+  
+  return {
+    request: requestViaPopup
+  };
+})();
+
+/** Hudson wrapper */
+var Hudson = (function() {
+
+  var callHudsonFor = function(depth, callback) {
+    $.ajax({
+//      url: 'http://10.108.10.155:8080/api/json',
+      url: 'http://10.108.10.155:8080/api/json',
+      dataType: 'jsonp',
+      jsonp: 'jsonp',
+      data: 'depth=' + depth,
+      success: callback,
+      error: function(request, status, error) {
+        alert("Error: " + status);
+      }
+    });    
+  };
+  
+  var viewsFor = function(callback) {
+    callHudsonFor(0, function(hudson) { callback(hudson.views); });
+  };
+
+  var jobsFor = function(callback) {
+    callHudsonFor(0, function(hudson) { callback(hudson.jobs); });
+  };
+
+  return {
+    viewsFor: viewsFor,
+    jobsFor: jobsFor
+  };
+})();
+
+Hawk.awaken(Hudson, Prey, FlightPlan);
 
 </script>
 </body>
