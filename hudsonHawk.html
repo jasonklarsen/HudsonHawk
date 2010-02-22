@@ -1,6 +1,7 @@
 <html>
 <head>
   <title>Hudson Hawk</title>
+  <link type="text/css" href="http://jqueryui.com/latest/themes/base/jquery.ui.all.css" rel="stylesheet" />
   <style>
   body { background-color: green; }
   .job { position: relative; text-align: center; border: 2px black solid; font-size: 400%; white-space: nowrap; }
@@ -12,6 +13,7 @@
 </head>
 <body>
 <div id="jobs"></div>
+<div id="viewSelector" style="display: none"></div>
 <script src="http://www.google.com/jsapi"></script>
 <script>google.load("jquery", "1.4.2"); google.load("jqueryui", "1.7.2");</script>
 
@@ -23,8 +25,8 @@ var Hawk = (function() {
                        blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
   
   var awaken = function(hudson, prey, flightPlan) {
-    flightPlan.request(hudson, function() {
-      hudson.jobsFor(starting(prey));
+    flightPlan.request(hudson, function(view) {
+      hudson.jobsFor(view, starting(prey));
     });
 //    $('#TIM-browser-IE6')
 //    .animate({
@@ -74,7 +76,22 @@ var FlightPlan = (function() {
     if (viewName === undefined) {
       hudson.viewsFor(function(views) {
         //popup for views....
-        callBackAfterFlightPlan();
+        var popup = $('#viewSelector');
+        popup.dialog({ 
+          buttons: { 'OK': function() { $(this).dialog("close"); callBackAfterFlightPlan($('#viewOption').val()); } },
+          hide: "slide",
+          modal: true,
+          width: 400,
+          title: "Choose a Hudson view to monitor",
+          open: function(event, ui) {
+            popup.append("<select id='viewOption'></select>");
+            var selector = $('#viewOption');
+            $.each(views, function(i, view) {
+              selector.append("<option value='" + view['name'] + "'>" + view['name'] + "</option>");
+            });
+          }
+        });
+        
       });
     } else {
       callBackAfterFlightPlan();
@@ -89,10 +106,11 @@ var FlightPlan = (function() {
 /** Hudson wrapper */
 var Hudson = (function() {
 
-  var callHudsonFor = function(depth, callback) {
+  var callHudsonFor = function(depth, callback, view) {
+    var viewName = view ? "view/" + view + "/" : '';
     $.ajax({
 //      url: 'http://10.108.10.155:8080/api/json',
-      url: 'http://10.108.10.155:8080/api/json',
+      url: 'http://10.108.10.155:8080/' + viewName + 'api/json',
       dataType: 'jsonp',
       jsonp: 'jsonp',
       data: 'depth=' + depth,
@@ -107,8 +125,8 @@ var Hudson = (function() {
     callHudsonFor(0, function(hudson) { callback(hudson.views); });
   };
 
-  var jobsFor = function(callback) {
-    callHudsonFor(0, function(hudson) { callback(hudson.jobs); });
+  var jobsFor = function(view, callback) {
+    callHudsonFor(0, function(hudson) { callback(hudson.jobs); }, view);
   };
 
   return {
