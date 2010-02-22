@@ -3,7 +3,7 @@
   <title>Hudson Hawk</title>
   <style>
   body { background-color: green; }
-  .job { position: relative; display: inline; border: 2px black solid; font-size: 200%; white-space: nowrap; }
+  .job { position: relative; text-align: center; border: 2px black solid; font-size: 400%; white-space: nowrap; }
   .broken { background-color: darkred; left: 0px; }
   .failed { background-color: red; left: 0px; }
   .passed { background-color: green; left: 0px; }
@@ -25,7 +25,8 @@ var Hawk = (function() {
   var callHudsonFor = function(callback) {
     $.ajax({
 //      url: 'http://ccmain.youdevise.com:8080/api/json',
-      url: 'http://10.108.10.155:8080/api/json',
+//      url: 'http://10.108.10.155:8080/api/json',
+      url: 'http://10.108.10.155:8080/view/TIM/api/json',
       dataType: 'jsonp',
       jsonp: 'jsonp',
       data: 'depth=1',
@@ -37,11 +38,11 @@ var Hawk = (function() {
   };
   
   var awaken = function(prey) {
-//    $('#boo')
+    callHudsonFor(starting(prey));
+//    $('#TIM-browser-IE6')
 //    .animate({
 //      top: "+=" + ($('body').innerHeight() - 20)
 //    }, 10000);
-    callHudsonFor(starting(prey));
   };
   
   var starting = function(prey) {
@@ -69,7 +70,8 @@ var Prey = (function() {
   };
    
   var addToRadar = function(name, state) {
-    $('#jobs').append('<div id="' + name + '"><span class="' + (state || 'unknown') + ' job">' + name + '</span></div>');
+//    $('#jobs').append('<div id="' + name + '"><span class="' + (state || 'unknown') + ' job">' + name + '</span></div>');
+    $('#jobs').append('<div id="' + name + '" class="' + (state || 'unknown') + ' job">' + name + '</div>');
   };
   
   return {
