@@ -1,6 +1,6 @@
 Items yet to do:
-- Save view in a cookie to bypass popup
 - Specify Hudson server in a popup
+- Add warning to popup in Chrome + local file that cookies don't work
 - Save Hudson server to cookie to bypass popup
 - Provide reset button to remove view/server from cookie
 - Add pulsating for in-progress builds
@@ -11,4 +11,6 @@ Items yet to do:
 - On failed build detail screen, can click button to mark as Being Fixed (and remembered like Flickers)
 - Provide a comment on build detail screen that is persisted like status
 
+DONE
+- Save view in a cookie to bypass popup
 

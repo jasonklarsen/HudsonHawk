@@ -68,17 +68,47 @@ var Prey = (function() {
   };
 })();
 
+/**  Cookie utils */
+var Cookie = {
+  create: function(name, value) {
+    var date = new Date();
+    date.setTime(date.getTime() + (500 * 24 * 60 * 60 * 1000)); // 500 days from now
+    document.cookie = name + "=" + value + "; expires=" + date.toGMTString() + "; path=/";
+  },
+  erase: function(name) { Cookie.create(name, ""); },
+  read: function(name) {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+      var c = ca[i];
+      while (c.charAt(0)==' ') {
+        c = c.substring(1, c.length);
+      }
+      if (c.indexOf(nameEQ) == 0) {
+        return c.substring(nameEQ.length, c.length);
+      }
+    }
+    return null;
+  }
+};
+
 /** Configuration options */
 var FlightPlan = (function() {
-  var viewName;
-  
+  var viewName = Cookie.read('viewName');
   var requestViaPopup = function(hudson, callBackAfterFlightPlan) {
-    if (viewName === undefined) {
+    if (viewName) {
+      callBackAfterFlightPlan(viewName);
+    } else {
       hudson.viewsFor(function(views) {
         //popup for views....
         var popup = $('#viewSelector');
         popup.dialog({ 
-          buttons: { 'OK': function() { $(this).dialog("close"); callBackAfterFlightPlan($('#viewOption').val()); } },
+          buttons: { 'OK': function() { 
+            $(this).dialog("close");
+            var newViewName = $('#viewOption').val(); 
+            Cookie.create('viewName', newViewName);
+            callBackAfterFlightPlan(newViewName); 
+          } },
           hide: "slide",
           modal: true,
           width: 400,
@@ -93,11 +123,9 @@ var FlightPlan = (function() {
         });
         
       });
-    } else {
-      callBackAfterFlightPlan();
     }
   };
-  
+    
   return {
     request: requestViaPopup
   };
