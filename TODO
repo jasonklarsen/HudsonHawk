@@ -1,0 +1,14 @@
+Items yet to do:
+- Save view in a cookie to bypass popup
+- Specify Hudson server in a popup
+- Save Hudson server to cookie to bypass popup
+- Provide reset button to remove view/server from cookie
+- Add pulsating for in-progress builds
+- Make new failed builds created an exploded detail view filling the screen
+- Add Click on failed build to see detail
+- On failed build detail screen, can click button to mark as Flicker
+- Builds marked as Flicker are remembered in Hudson jobs detail
+- On failed build detail screen, can click button to mark as Being Fixed (and remembered like Flickers)
+- Provide a comment on build detail screen that is persisted like status
+
+
