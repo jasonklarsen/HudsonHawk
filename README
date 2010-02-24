@@ -1,1 +1,2 @@
-A client-side Build Radiator that watches a given Hudson server.
+A client-side Build Radiator that radiates your build status, whether you like it or not.
+

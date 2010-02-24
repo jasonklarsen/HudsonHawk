@@ -1,6 +1,4 @@
 Items yet to do:
-- Specify Hudson server in a popup
-- Save Hudson server to cookie to bypass popup
 - Provide reset button to remove view/server from cookie
 - Add pulsating for in-progress builds
 - Make new failed builds created an exploded detail view filling the screen
@@ -9,7 +7,16 @@ Items yet to do:
 - Builds marked as Flicker are remembered in Hudson jobs detail
 - On failed build detail screen, can click button to mark as Being Fixed (and remembered like Flickers)
 - Provide a comment on build detail screen that is persisted like status
+- Provide special notification when Hudson is unavailable
+
+To consider:
+- Visible indicator for number of consecutive broken builds?
+- Visible indicator for time broken? Time broken since first failure?
+- Visible indicator for time left building?
 
 DONE
 - Save view in a cookie to bypass popup
+- Use HTML5 storage to save data (if supported).  Allows Chrome usage as file:// to persist settings.
+- Specify Hudson server in a popup
+- Save Hudson server to cookie to bypass popup
 

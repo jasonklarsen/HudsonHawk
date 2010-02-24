@@ -9,11 +9,12 @@
   .failed { background-color: red; left: 0px; }
   .passed { background-color: green; left: 0px; }
   .unknown { background-color: yellow; left: 0px; }
+  input.url { width: 350px; }
   </style>
 </head>
 <body>
 <div id="jobs"></div>
-<div id="viewSelector" style="display: none"></div>
+<div id="popup" style="display: none"></div>
 <script src="http://www.google.com/jsapi"></script>
 <script>google.load("jquery", "1.4.2"); google.load("jqueryui", "1.7.2");</script>
 
@@ -28,10 +29,6 @@ var Hawk = (function() {
     flightPlan.request(hudson, function(view) {
       hudson.jobsFor(view, starting(prey));
     });
-//    $('#TIM-browser-IE6')
-//    .animate({
-//      top: "+=" + ($('body').innerHeight() - 20)
-//    }, 10000);
   };
   
   var starting = function(prey) {
@@ -105,51 +102,73 @@ var Storage = (function() {
 
 /** Configuration options */
 var FlightPlan = (function() {
-  var viewName = Storage.read('viewName');
-  var requestViaPopup = function(hudson, callBackAfterFlightPlan) {
-    if (viewName) {
-      callBackAfterFlightPlan(viewName);
+  var serverUrl = Storage.read('HudsonHawk.serverUrl');
+  var viewName = Storage.read('HudsonHawk.viewName');
+  
+  var popupRequestForInfo = function(title, formBuilder, okCallback) {
+    var popup = $('#popup');
+    popup.empty();
+    popup.dialog({ 
+      buttons: { 'OK': function() {  $(this).dialog("close"); okCallback(); } },
+      hide: "slide",
+      modal: true,
+      width: 400,
+      title: title,
+      open: function(event, ui) { formBuilder(popup); }
+    });  
+  };
+  
+  var requestViaPopups = function(hudson, callBackAfterFlightPlan) {
+    if (serverUrl) {
+      Hudson.redirectTo(serverUrl);
+      if (viewName) {
+        callBackAfterFlightPlan(viewName);
+      } else {
+        requestView(hudson, callBackAfterFlightPlan);
+      }
     } else {
-      hudson.viewsFor(function(views) {
-        //popup for views....
-        var popup = $('#viewSelector');
-        popup.dialog({ 
-          buttons: { 'OK': function() { 
-            $(this).dialog("close");
-            var newViewName = $('#viewOption').val(); 
-            Storage.write('viewName', newViewName);
-            callBackAfterFlightPlan(newViewName); 
-          } },
-          hide: "slide",
-          modal: true,
-          width: 400,
-          title: "Choose a Hudson view to monitor",
-          open: function(event, ui) {
-            popup.append("<select id='viewOption'></select>");
-            var selector = $('#viewOption');
-            $.each(views, function(i, view) {
-              selector.append("<option value='" + view['name'] + "'>" + view['name'] + "</option>");
-            });
-          }
-        });
-        
+      popupRequestForInfo("Enter Hudson server url", urlFormBuilder, function() {
+        var newUrl = $('#urlOption').val(); 
+        hudson.redirectTo(newUrl);
+        Storage.write('HudsonHawk.serverUrl', newUrl);        
+        requestView(hudson, callBackAfterFlightPlan);        
       });
     }
   };
+  
+  var urlFormBuilder = function(popup) { popup.append("<input id='urlOption' class='url' value='http://'></input>"); }
+
+  var requestView = function(hudson, callBackAfterFlightPlan) {
+    hudson.viewsFor(function(views) {
+      var viewFormBuilder = function(popup) {
+        popup.append("<select id='viewOption'></select>");
+        var selector = $('#viewOption');
+        $.each(views, function(i, view) {
+          selector.append("<option value='" + view['name'] + "'>" + view['name'] + "</option>");
+        });        
+      };
+      
+      popupRequestForInfo("Choose a Hudson view to monitor", viewFormBuilder, function() {
+        var newViewName = $('#viewOption').val(); 
+        Storage.write('HudsonHawk.viewName', newViewName);
+        callBackAfterFlightPlan(newViewName); 
+      });        
+    });
+  };
     
   return {
-    request: requestViaPopup
+    request: requestViaPopups
   };
 })();
 
 /** Hudson wrapper */
-var Hudson = (function() {
-
+var Hudson = (function() {  
+  var hudsonUrl;
+  
   var callHudsonFor = function(depth, callback, view) {
     var viewName = view ? "view/" + view + "/" : '';
     $.ajax({
-//      url: 'http://10.108.10.155:8080/api/json',
-      url: 'http://10.108.10.155:8080/' + viewName + 'api/json',
+      url: hudsonUrl + viewName + 'api/json',
       dataType: 'jsonp',
       jsonp: 'jsonp',
       data: 'depth=' + depth,
@@ -167,10 +186,16 @@ var Hudson = (function() {
   var jobsFor = function(view, callback) {
     callHudsonFor(0, function(hudson) { callback(hudson.jobs); }, view);
   };
+  
+  var redirectTo = function(dirtyUrl) {
+    var cleanerUrl = dirtyUrl.indexOf('http') > -1 ? dirtyUrl : "http://" + dirtyUrl;
+    hudsonUrl = cleanerUrl.charAt(cleanerUrl.length - 1) === '/' ? cleanerUrl : cleanerUrl + "/";
+  };
 
   return {
     viewsFor: viewsFor,
-    jobsFor: jobsFor
+    jobsFor: jobsFor,
+    redirectTo: redirectTo
   };
 })();
 
