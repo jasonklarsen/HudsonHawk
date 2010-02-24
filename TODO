@@ -1,4 +1,5 @@
 Items yet to do:
+- Auto refresh status periodically
 - Provide reset button to remove view/server from cookie
 - Add pulsating for in-progress builds
 - Make new failed builds created an exploded detail view filling the screen
@@ -7,7 +8,9 @@ Items yet to do:
 - Builds marked as Flicker are remembered in Hudson jobs detail
 - On failed build detail screen, can click button to mark as Being Fixed (and remembered like Flickers)
 - Provide a comment on build detail screen that is persisted like status
-- Provide special notification when Hudson is unavailable
+- Provide special notification when Hudson is unavailable  (Do we empty the screen and display a message?  Do we grey out previous status?)
+- Provide special notification when all is well (Text?  Big thumbs up?)
+- Provide better feedback during settings setup that we are still getting data for views (maybe grey background screen?)
 
 To consider:
 - Visible indicator for number of consecutive broken builds?
