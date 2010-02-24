@@ -1,6 +1,5 @@
 Items yet to do:
 - Specify Hudson server in a popup
-- Add warning to popup in Chrome + local file that cookies don't work
 - Save Hudson server to cookie to bypass popup
 - Provide reset button to remove view/server from cookie
 - Add pulsating for in-progress builds

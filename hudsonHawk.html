@@ -68,33 +68,44 @@ var Prey = (function() {
   };
 })();
 
-/**  Cookie utils */
-var Cookie = {
-  create: function(name, value) {
-    var date = new Date();
-    date.setTime(date.getTime() + (500 * 24 * 60 * 60 * 1000)); // 500 days from now
-    document.cookie = name + "=" + value + "; expires=" + date.toGMTString() + "; path=/";
-  },
-  erase: function(name) { Cookie.create(name, ""); },
-  read: function(name) {
-    var nameEQ = name + "=";
-    var ca = document.cookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
-      var c = ca[i];
-      while (c.charAt(0)==' ') {
-        c = c.substring(1, c.length);
+/**  Storage utils (via Cookies or HTML5 storage if supported) */
+var Storage = (function() {
+  var cookieStorage = {
+    write: function(name, value) {
+      var date = new Date();
+      date.setTime(date.getTime() + (500 * 24 * 60 * 60 * 1000)); // 500 days from now
+      document.cookie = name + "=" + value + "; expires=" + date.toGMTString() + "; path=/";
+    },
+    read: function(name) {
+      var nameEQ = name + "=";
+      var ca = document.cookie.split(';');
+      for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0)==' ') {
+          c = c.substring(1, c.length);
+        }
+        if (c.indexOf(nameEQ) == 0) {
+          return c.substring(nameEQ.length, c.length);
+        }
       }
-      if (c.indexOf(nameEQ) == 0) {
-        return c.substring(nameEQ.length, c.length);
-      }
+      return null;
     }
-    return null;
   }
-};
+  
+  var hasLocalStorage = function() { return !!localStorage && !$.browser.mozilla; } ;// Firefox 3.5 has localStorage but it doesn't seem to work right....
+  
+  var storage = hasLocalStorage() ? { write: function(name, value) { localStorage.setItem(name, value); }, read: function(name) { return localStorage.getItem(name); } } : cookieStorage; 
+  
+  return {
+    write: storage.write,
+    erase: function(name) { storage.write(name, ""); },
+    read: storage.read
+  }
+})();
 
 /** Configuration options */
 var FlightPlan = (function() {
-  var viewName = Cookie.read('viewName');
+  var viewName = Storage.read('viewName');
   var requestViaPopup = function(hudson, callBackAfterFlightPlan) {
     if (viewName) {
       callBackAfterFlightPlan(viewName);
@@ -106,7 +117,7 @@ var FlightPlan = (function() {
           buttons: { 'OK': function() { 
             $(this).dialog("close");
             var newViewName = $('#viewOption').val(); 
-            Cookie.create('viewName', newViewName);
+            Storage.write('viewName', newViewName);
             callBackAfterFlightPlan(newViewName); 
           } },
           hide: "slide",
