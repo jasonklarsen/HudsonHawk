@@ -22,22 +22,17 @@
 /** Watcher of Hudson jobs. */
 var Hawk = (function() {
 
-  var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
-                       blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
-  
   var awaken = function(hudson, prey, flightPlan) {
     flightPlan.request(hudson, function(view) {
-      hudson.jobsFor(view, starting(prey));
+      var attackPlan = function() { hudson.jobsFor(view, addTo(prey)); setTimeout(attackPlan, 30000); }
+      attackPlan();
     });
   };
   
-  var starting = function(prey) {
+  var addTo = function(prey) {
     return function(jobs) {
-      $.each(jobs, function(i, job) {
-        if (job.color !== 'blue' && job.color !== 'blue_anime') {
-          prey.target(job.name, colorToState[job.color]);
-        }
-      });
+      var failedJobs = $(jobs).filter(function() { return this.color !== 'blue' && this.color !== 'blue_anime'; });
+      prey.target(failedJobs);
     }
   };
   
@@ -48,16 +43,43 @@ var Hawk = (function() {
 
 /** Hudson jobs to watch for */
 var Prey = (function() {
-  var listing = {};
+  var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
+                       blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
   
-  var target = function(name, state) {
-    listing[name] = state;
-    addToRadar(name, state);
+  var makeListings = function(jobs) {
+    var out = { names: {}, values: [] };
+    $(jobs).each(function(i, job) {
+      var state = colorToState[job.color];
+      var value = { name: job.name, state: state, buildNumber: job.lastCompletedBuild.number };
+      out.names[job.name] = value;
+      out.values.push(value);
+    });
+    return out;
   };
-   
+  
+  var listings = makeListings([]);
+  
+  var target = function(jobs) {
+    var newListings = makeListings(jobs);
+    
+    var missingBuilds = $(listings.values).filter(function(i, listing) { return !newListings.names[listing.name]; });
+    $(missingBuilds).each(function(i, listing) { removeFromRadar(listing.name); });
+    
+    var newFails = $(newListings.values).filter(function(i, listing) { return !listings.names[listing.name]; });
+    $(newFails).each(function(i, listing) { addToRadar(listing.name, listing.state); });
+    
+    var newReFails = $(listings.values).filter(function(i, listing) { return newListings.names[listing.name] && listing.buildNumber !== newListings.names[listing.name].buildNumber; });
+    $(newReFails).each(function(i, listing) { removeFromRadar(listing.name); addToRadar(listing.name, listing.state); });
+    listings = newListings;
+  };
+    
+  var removeFromRadar = function(name) {
+    $("#" + name).hide("blind", { direction: "vertical" }, 1000);
+  }
+  
   var addToRadar = function(name, state) {
 //    $('#jobs').append('<div id="' + name + '"><span class="' + (state || 'unknown') + ' job">' + name + '</span></div>');
-    $('#jobs').append('<div id="' + name + '" class="' + (state || 'unknown') + ' job">' + name + '</div>');
+    $('#jobs').prepend('<div id="' + name + '" class="' + (state || 'unknown') + ' job">' + name + '</div>');
   };
   
   return {
@@ -184,7 +206,7 @@ var Hudson = (function() {
   };
 
   var jobsFor = function(view, callback) {
-    callHudsonFor(0, function(hudson) { callback(hudson.jobs); }, view);
+    callHudsonFor(1, function(hudson) { callback(hudson.jobs); }, view);
   };
   
   var redirectTo = function(dirtyUrl) {
