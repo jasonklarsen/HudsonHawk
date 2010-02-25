@@ -20,18 +20,16 @@
 
 <script>
 /** Watcher of Hudson jobs. */
-var Hawk = (function() {
+var Hawk = function(hudson, prey, flightPlan) {
 
-  var awaken = function(hudson, prey, flightPlan) {
-    flightPlan
-      .requestViewFrom(hudson)
-      .andThen(function(view) {
-        var attackPlan = function() { 
-          hudson.jobsFor(view, thenAddTo(prey)); 
-          setTimeout(attackPlan, 30000); 
-        }
-        attackPlan();
-      });
+  var awaken = function() {
+    flightPlan.requestViewAndThen(function(view) {
+      var attackPlan = function() { 
+        hudson.jobsFor(view, thenAddTo(prey)); 
+        setTimeout(attackPlan, 30000); 
+      }
+      attackPlan();
+    });
   };
   
   var thenAddTo = function(prey) {
@@ -44,10 +42,10 @@ var Hawk = (function() {
   return {
     awaken: awaken
   };  
-})();
+};
 
 /** Hudson jobs to watch for */
-var Prey = (function() {
+var Prey = function(radar) {
   var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
                        blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
   
@@ -69,29 +67,34 @@ var Prey = (function() {
     var newListings = Listings(jobs);
     
     var missingBuilds = $(listings.values).filter(function(i, listing) { return !newListings.names[listing.name]; });
-    $(missingBuilds).each(function(i, listing) { removeFromRadar(listing.name); });
+    $(missingBuilds).each(function(i, listing) { radar.remove(listing.name); });
     
     var newFails = $(newListings.values).filter(function(i, listing) { return !listings.names[listing.name]; });
-    $(newFails).each(function(i, listing) { addToRadar(listing.name, listing.state); });
+    $(newFails).each(function(i, listing) { radar.add(listing.name, listing.state); });
     
     var newReFails = $(listings.values).filter(function(i, listing) { return newListings.names[listing.name] && listing.buildNumber !== newListings.names[listing.name].buildNumber; });
-    $(newReFails).each(function(i, listing) { removeFromRadar(listing.name); addToRadar(listing.name, listing.state); });
+    $(newReFails).each(function(i, listing) { radar.remove(listing.name); radar.add(listing.name, listing.state); });
     
     listings = newListings;
   };
     
-  var removeFromRadar = function(name) {
+  return {
+    target: target
+  };
+};
+
+var Radar = (function() {
+
+  var remove = function(name) {
     $("#" + name).hide("blind", { direction: "vertical" }, 5000).remove();
   }
   
-  var addToRadar = function(name, state) {
+  var add = function(name, state) {
     $('#jobs').prepend('<div id="' + name + '" class="' + (state || 'unknown') + ' job" style="display: none">' + name + '</div>');
     $("#" + name).show("drop", { direction: "up" }, 2000);
   };
   
-  return {
-    target: target
-  };
+  return { remove: remove, add: add };
 })();
 
 /**  Storage utils (via Cookies or HTML5 storage if supported) */
@@ -130,9 +133,9 @@ var Storage = (function() {
 })();
 
 /** Configuration options */
-var FlightPlan = (function() {
-  var serverUrl = Storage.read('HudsonHawk.serverUrl');
-  var viewName = Storage.read('HudsonHawk.viewName');
+var FlightPlan = function(storage, hudson) {
+  var serverUrl = function() { return storage.read('HudsonHawk.serverUrl') };
+  var viewName = function() { return storage.read('HudsonHawk.viewName') };
   
   var popupRequestForInfo = function(title, formBuilder, okCallback) {
     var popup = $('#popup');
@@ -147,27 +150,27 @@ var FlightPlan = (function() {
     });  
   };
   
-  var requestViaPopups = function(hudson, callBackAfterFlightPlan) {
-    if (serverUrl) {
-      Hudson.redirectTo(serverUrl);
-      if (viewName) {
-        callBackAfterFlightPlan(viewName);
+  var requestViaPopups = function(callBackAfterFlightPlan) {
+    if (serverUrl()) {
+      hudson.redirectTo(serverUrl());
+      if (viewName()) {
+        callBackAfterFlightPlan(viewName());
       } else {
-        requestView(hudson, callBackAfterFlightPlan);
+        requestView(callBackAfterFlightPlan);
       }
     } else {
       popupRequestForInfo("Enter Hudson server url", urlFormBuilder, function() {
         var newUrl = $('#urlOption').val(); 
         hudson.redirectTo(newUrl);
-        Storage.write('HudsonHawk.serverUrl', newUrl);        
-        requestView(hudson, callBackAfterFlightPlan);        
+        storage.write('HudsonHawk.serverUrl', newUrl);        
+        requestView(callBackAfterFlightPlan);        
       });
     }
   };
   
   var urlFormBuilder = function(popup) { popup.append("<input id='urlOption' class='url' value='http://'></input>"); }
 
-  var requestView = function(hudson, callBackAfterFlightPlan) {
+  var requestView = function(callBackAfterFlightPlan) {
     hudson.viewsFor(function(views) {
       var viewFormBuilder = function(popup) {
         popup.append("<select id='viewOption'></select>");
@@ -179,20 +182,14 @@ var FlightPlan = (function() {
       
       popupRequestForInfo("Choose a Hudson view to monitor", viewFormBuilder, function() {
         var newViewName = $('#viewOption').val(); 
-        Storage.write('HudsonHawk.viewName', newViewName);
+        storage.write('HudsonHawk.viewName', newViewName);
         callBackAfterFlightPlan(newViewName); 
       });        
     });
   };
     
-  return {
-    requestViewFrom: function(hudson) {
-      return {
-        andThen: function(callback) { requestViaPopups(hudson, callback); }
-      }
-    }
-  };
-})();
+  return { requestViewAndThen: requestViaPopups };
+};
 
 /** Hudson wrapper */
 var Hudson = (function() {  
@@ -232,7 +229,13 @@ var Hudson = (function() {
   };
 })();
 
-Hawk.awaken(Hudson, Prey, FlightPlan);
+var hudson = Hudson;
+var prey = Prey(Radar);
+var storage = Storage;
+var flightPlan = FlightPlan(storage, hudson);
+var hawk = Hawk(hudson, prey, flightPlan);
+
+hawk.awaken();
 
 </script>
 </body>
