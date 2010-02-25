@@ -1,6 +1,5 @@
 Items yet to do:
 - Provide reset button to remove view/server from cookie
-- Add pulsating for in-progress builds
 - Make new failed builds created an exploded detail view filling the screen
 - Add Click on failed build to see detail
 - On failed build detail screen, can click button to mark as Flicker
@@ -24,4 +23,5 @@ DONE
 - Save Hudson server to cookie to bypass popup
 - Auto refresh status periodically
 - Provide better feedback during settings setup that we are still getting data for views (maybe grey background screen?)
+- Add pulsating for in-progress builds
 

@@ -45,14 +45,13 @@ var Hawk = function(hudson, prey, flightPlan) {
 
 /** Hudson jobs to watch for */
 var Prey = function(radar) {
-  var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
-                       blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
-  
+
   var Listings = function(jobs) {
     var names = {}, values = [];
     $(jobs).each(function(i, job) {
       var value = { name: job.name, 
-                    state: colorToState[job.color], 
+                    color: job.color, 
+                    inProgress: job.color.indexOf('anime') > -1,
                     buildNumber: job.lastCompletedBuild ? job.lastCompletedBuild.number: null };
       names[job.name] = value;
       values.push(value);
@@ -65,17 +64,24 @@ var Prey = function(radar) {
   var target = function(jobs) {
     var newListings = Listings(jobs);
     
-    var missingBuilds = $(listings.values).filter(function(i, listing) { return !newListings.names[listing.name]; });
-    $(missingBuilds).each(function(i, listing) { radar.remove(listing.name); });
+    var notInNewList = function(i, listing) { return !newListings.names[listing.name]; };
+    var notInOldList = function(i, listing) { return !listings.names[listing.name]; };
+    var withChangedBuildNumbers = function(i, listing) { return newListings.names[listing.name] && listing.buildNumber !== newListings.names[listing.name].buildNumber; };
+    var nowInProgress = function(i, listing) { return listing.inProgress; };
     
-    var newFails = $(newListings.values).filter(function(i, listing) { return !listings.names[listing.name]; });
-    $(newFails).each(function(i, listing) { radar.add(listing.name, listing.state); });
-    
-    var newReFails = $(listings.values).filter(function(i, listing) { return newListings.names[listing.name] && listing.buildNumber !== newListings.names[listing.name].buildNumber; });
-    $(newReFails).each(function(i, listing) { radar.remove(listing.name); radar.add(listing.name, listing.state); });
+    filter(listings, notInNewList).andForEach(function(i, listing) { radar.remove(listing.name); });
+    filter(newListings, notInOldList).andForEach(function(i, listing) { radar.add(listing.name, listing.color); });
+    filter(listings, withChangedBuildNumbers).andForEach(function(i, listing) { radar.remove(listing.name); radar.add(listing.name, listing.color); });
+    filter(newListings, nowInProgress).andForEach(function(i, listing) { radar.highlight(listing.name); });
     
     listings = newListings;
   };
+  
+  var filter = function(listings, filterFxn) { 
+    return { andForEach: function(closure) { 
+      $(listings.values).filter(filterFxn).each(closure);
+    } };
+  }
     
   return {
     target: target
@@ -83,17 +89,26 @@ var Prey = function(radar) {
 };
 
 var Radar = (function() {
-
+  
+  var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
+                       blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
+  
   var remove = function(name) {
-    $("#" + name).hide("blind", { direction: "vertical" }, 5000).remove();
+    $("#" + name).hide("blind", { direction: "vertical" }, 5000);
+    setTimeout(function() { $("#" + name).remove(); }, 5000);
   }
   
-  var add = function(name, state) {
-    $('#jobs').prepend('<div id="' + name + '" class="' + (state || 'unknown') + ' job" style="display: none">' + name + '</div>');
-    $("#" + name).show("drop", { direction: "up" }, 2000);
+  var add = function(name, color) {
+    var jobClass = colorToState[color] || 'unknown';
+    $('#jobs').prepend('<div id="' + name + '" class="' + jobClass + ' job" style="display: none">' + name + '</div>');
+    $("#" + name).show("blind", { direction: "vertical" }, 2000);
   };
   
-  return { remove: remove, add: add };
+  var highlight = function(name) {
+    $("#" + name).effect("pulsate", { times: 10000 }, 5000);
+  };
+  
+  return { remove: remove, add: add, highlight: highlight };
 })();
 
 /**  Storage utils (via Cookies or HTML5 storage if supported) */
