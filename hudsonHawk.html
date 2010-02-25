@@ -3,7 +3,8 @@
   <title>Hudson Hawk</title>
   <link type="text/css" href="http://jqueryui.com/latest/themes/base/jquery.ui.all.css" rel="stylesheet" />
   <style>
-  body { background-color: green; }
+  .notready { background-color: grey; }
+  .ready { background-color: green; }
   .job { position: relative; text-align: center; border: 2px black solid; font-size: 400%; white-space: nowrap; }
   .broken { background-color: darkred; left: 0px; }
   .failed { background-color: red; left: 0px; }
@@ -12,12 +13,11 @@
   input.url { width: 350px; }
   </style>
 </head>
-<body>
+<body class="notready">
 <div id="jobs"></div>
 <div id="popup" style="display: none"></div>
 <script src="http://www.google.com/jsapi"></script>
 <script>google.load("jquery", "1.4.2"); google.load("jqueryui", "1.7.2");</script>
-
 <script>
 /** Watcher of Hudson jobs. */
 var Hawk = function(hudson, prey, flightPlan) {
@@ -36,12 +36,11 @@ var Hawk = function(hudson, prey, flightPlan) {
     return function(jobs) {
       var failedJobs = $(jobs).filter(function() { return this.color !== 'blue' && this.color !== 'blue_anime'; });
       prey.target(failedJobs);
+      $('body').removeClass('notready').addClass('ready');
     }
   };
   
-  return {
-    awaken: awaken
-  };  
+  return { awaken: awaken };  
 };
 
 /** Hudson jobs to watch for */
@@ -159,7 +158,7 @@ var FlightPlan = function(storage, hudson) {
         requestView(callBackAfterFlightPlan);
       }
     } else {
-      popupRequestForInfo("Enter Hudson server url", urlFormBuilder, function() {
+      popupRequestForInfo("Enter Hudson server URL", urlFormBuilder, function() {
         var newUrl = $('#urlOption').val(); 
         hudson.redirectTo(newUrl);
         storage.write('HudsonHawk.serverUrl', newUrl);        
