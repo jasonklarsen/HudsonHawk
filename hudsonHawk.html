@@ -23,13 +23,18 @@
 var Hawk = (function() {
 
   var awaken = function(hudson, prey, flightPlan) {
-    flightPlan.request(hudson, function(view) {
-      var attackPlan = function() { hudson.jobsFor(view, addTo(prey)); setTimeout(attackPlan, 30000); }
-      attackPlan();
-    });
+    flightPlan
+      .requestViewFrom(hudson)
+      .andThen(function(view) {
+        var attackPlan = function() { 
+          hudson.jobsFor(view, thenAddTo(prey)); 
+          setTimeout(attackPlan, 30000); 
+        }
+        attackPlan();
+      });
   };
   
-  var addTo = function(prey) {
+  var thenAddTo = function(prey) {
     return function(jobs) {
       var failedJobs = $(jobs).filter(function() { return this.color !== 'blue' && this.color !== 'blue_anime'; });
       prey.target(failedJobs);
@@ -46,21 +51,22 @@ var Prey = (function() {
   var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
                        blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
   
-  var makeListings = function(jobs) {
-    var out = { names: {}, values: [] };
+  var Listings = function(jobs) {
+    var names = {}, values = [];
     $(jobs).each(function(i, job) {
-      var state = colorToState[job.color];
-      var value = { name: job.name, state: state, buildNumber: job.lastCompletedBuild.number };
-      out.names[job.name] = value;
-      out.values.push(value);
+      var value = { name: job.name, 
+                    state: colorToState[job.color], 
+                    buildNumber: job.lastCompletedBuild ? job.lastCompletedBuild.number: null };
+      names[job.name] = value;
+      values.push(value);
     });
-    return out;
+    return { names: names, values: values };
   };
   
-  var listings = makeListings([]);
+  var listings = Listings([]);
   
   var target = function(jobs) {
-    var newListings = makeListings(jobs);
+    var newListings = Listings(jobs);
     
     var missingBuilds = $(listings.values).filter(function(i, listing) { return !newListings.names[listing.name]; });
     $(missingBuilds).each(function(i, listing) { removeFromRadar(listing.name); });
@@ -70,16 +76,17 @@ var Prey = (function() {
     
     var newReFails = $(listings.values).filter(function(i, listing) { return newListings.names[listing.name] && listing.buildNumber !== newListings.names[listing.name].buildNumber; });
     $(newReFails).each(function(i, listing) { removeFromRadar(listing.name); addToRadar(listing.name, listing.state); });
+    
     listings = newListings;
   };
     
   var removeFromRadar = function(name) {
-    $("#" + name).hide("blind", { direction: "vertical" }, 1000);
+    $("#" + name).hide("blind", { direction: "vertical" }, 5000).remove();
   }
   
   var addToRadar = function(name, state) {
-//    $('#jobs').append('<div id="' + name + '"><span class="' + (state || 'unknown') + ' job">' + name + '</span></div>');
-    $('#jobs').prepend('<div id="' + name + '" class="' + (state || 'unknown') + ' job">' + name + '</div>');
+    $('#jobs').prepend('<div id="' + name + '" class="' + (state || 'unknown') + ' job" style="display: none">' + name + '</div>');
+    $("#" + name).show("drop", { direction: "up" }, 2000);
   };
   
   return {
@@ -179,7 +186,11 @@ var FlightPlan = (function() {
   };
     
   return {
-    request: requestViaPopups
+    requestViewFrom: function(hudson) {
+      return {
+        andThen: function(callback) { requestViaPopups(hudson, callback); }
+      }
+    }
   };
 })();
 
