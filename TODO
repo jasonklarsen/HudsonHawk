@@ -8,6 +8,7 @@ Items yet to do:
 - Provide a comment on build detail screen that is persisted like status
 - Provide special notification when Hudson is unavailable  (Do we empty the screen and display a message?  Do we grey out previous status?)
 - Provide special notification when all is well (Text?  Big thumbs up?)
+- Investigate more browser combinations (esp. IEs)
 
 To consider:
 - Visible indicator for number of consecutive broken builds?
@@ -15,6 +16,7 @@ To consider:
 - Visible indicator for time left building?
 - Sorting builds by most recent build at the top (on first load)
 - Consider doubling size when a build breaks after someone marks on as Being Fixed
+- Consider script to strip out JS and run unit tests
 
 DONE
 - Save view in a cookie to bypass popup

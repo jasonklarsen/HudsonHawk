@@ -46,13 +46,17 @@ var Hawk = function(hudson, prey, flightPlan) {
 /** Hudson jobs to watch for */
 var Prey = function(radar) {
 
+  var Listing = function(job) {
+    return { name: job.name, 
+             color: job.color, 
+             inProgress: job.color.indexOf('anime') > -1,
+             buildNumber: job.lastCompletedBuild ? job.lastCompletedBuild.number: null };
+  };
+ 
   var Listings = function(jobs) {
     var names = {}, values = [];
     $(jobs).each(function(i, job) {
-      var value = { name: job.name, 
-                    color: job.color, 
-                    inProgress: job.color.indexOf('anime') > -1,
-                    buildNumber: job.lastCompletedBuild ? job.lastCompletedBuild.number: null };
+      var value = Listing(job);
       names[job.name] = value;
       values.push(value);
     });
@@ -69,10 +73,10 @@ var Prey = function(radar) {
     var withChangedBuildNumbers = function(i, listing) { return newListings.names[listing.name] && listing.buildNumber !== newListings.names[listing.name].buildNumber; };
     var nowInProgress = function(i, listing) { return listing.inProgress; };
     
-    filter(listings, notInNewList).andForEach(function(i, listing) { radar.remove(listing.name); });
-    filter(newListings, notInOldList).andForEach(function(i, listing) { radar.add(listing.name, listing.buildNumber, listing.color); });
-    filter(listings, withChangedBuildNumbers).andForEach(function(i, listing) { radar.remove(listing.name); radar.add(listing.name, listing.color); });
-    filter(newListings, nowInProgress).andForEach(function(i, listing) { radar.highlight(listing.name); });
+    filter(listings, notInNewList).andForEach(function(i, listing) { radar.remove(listing); });
+    filter(newListings, notInOldList).andForEach(function(i, listing) { radar.add(listing); });
+    filter(listings, withChangedBuildNumbers).andForEach(function(i, listing) { radar.remove(listing); radar.add(listing); });
+    filter(newListings, nowInProgress).andForEach(function(i, listing) { radar.highlight(listing); });
     
     listings = newListings;
   };
@@ -88,30 +92,32 @@ var Prey = function(radar) {
   };
 };
 
-var Radar = (function() {
+/** View of the Prey data */
+var Radar = function(hudson) {
   
   var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
                        blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
   
-  var remove = function(name) {
-    $("#" + name).hide("blind", { direction: "vertical" }, 5000);
-    setTimeout(function() { $("#" + name).remove(); }, 5000);
+  var remove = function(listing) {
+    $("#" + listing.name).hide("blind", { direction: "vertical" }, 5000);
+    setTimeout(function() { $("#" + listing.name).remove(); }, 5000);
   }
   
-  var add = function(name, buildNumber, color) {
-    var jobClass = colorToState[color] || 'unknown';
-    var onClickCallback = "hudson.changeDescription(\'" + name + "\', \'" + buildNumber + "\', \'HAAAWK\');";
-
-    $('#jobs').prepend('<div id="' + name + '" class="' + jobClass + ' job" onClick="' + onClickCallback + '" style="display: none">' + name + '</div>');
-    $("#" + name).show("blind", { direction: "vertical" }, 2000);
+  var add = function(listing) {
+    var jobClass = colorToState[listing.color] || 'unknown';
+    $('#jobs').prepend('<div id="' + listing.name + '" class="' + jobClass + ' job" style="display: none">' + listing.name + '</div>');
+    
+    $("#" + listing.name)
+      .click(function() { hudson.changeDescription(listing.name, listing.buildNumber, 'HAWWK:'); })
+      .show("blind", { direction: "vertical" }, 2000);
   };
   
-  var highlight = function(name) {
-    $("#" + name).effect("pulsate", { times: 10000 }, 5000);
+  var highlight = function(listing) {
+    $("#" + listing.name).effect("pulsate", { times: 10000 }, 5000);
   };
   
   return { remove: remove, add: add, highlight: highlight };
-})();
+};
 
 /**  Storage utils (via Cookies or HTML5 storage if supported) */
 var Storage = (function() {
@@ -239,15 +245,11 @@ var Hudson = (function() {
   };
 
   var changeDescription = function(jobName, buildNumber, newDescription) {
-    var postHudsonUrl = "http://pschneider:@ccmain:8080";
     $.ajax({
       url: hudsonUrl + "/job/" + jobName + "/" + buildNumber + "/submitDescription",
+      data: { description: newDescription, json: '{"description": "'  + newDescription + '"}', Submit: "Submit"},
       dataType: 'jsonp',
-      jsonp: 'jsonp',
-      username: 'pschneider',
-      password: '',
-      data: 'description=' + newDescription,
-      success: function() { alert("stufd"); },
+      success: function() { },
       error: function(request, status, error) {
         alert("Error: " + status);
       }
@@ -263,7 +265,8 @@ var Hudson = (function() {
 })();
 
 var hudson = Hudson;
-var prey = Prey(Radar);
+var radar = Radar(hudson);
+var prey = Prey(radar);
 var storage = Storage;
 var flightPlan = FlightPlan(storage, hudson);
 var hawk = Hawk(hudson, prey, flightPlan);
