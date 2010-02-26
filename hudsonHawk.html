@@ -70,7 +70,7 @@ var Prey = function(radar) {
     var nowInProgress = function(i, listing) { return listing.inProgress; };
     
     filter(listings, notInNewList).andForEach(function(i, listing) { radar.remove(listing.name); });
-    filter(newListings, notInOldList).andForEach(function(i, listing) { radar.add(listing.name, listing.color); });
+    filter(newListings, notInOldList).andForEach(function(i, listing) { radar.add(listing.name, listing.buildNumber, listing.color); });
     filter(listings, withChangedBuildNumbers).andForEach(function(i, listing) { radar.remove(listing.name); radar.add(listing.name, listing.color); });
     filter(newListings, nowInProgress).andForEach(function(i, listing) { radar.highlight(listing.name); });
     
@@ -98,9 +98,11 @@ var Radar = (function() {
     setTimeout(function() { $("#" + name).remove(); }, 5000);
   }
   
-  var add = function(name, color) {
+  var add = function(name, buildNumber, color) {
     var jobClass = colorToState[color] || 'unknown';
-    $('#jobs').prepend('<div id="' + name + '" class="' + jobClass + ' job" style="display: none">' + name + '</div>');
+    var onClickCallback = "hudson.changeDescription(\'" + name + "\', \'" + buildNumber + "\', \'HAAAWK\');";
+
+    $('#jobs').prepend('<div id="' + name + '" class="' + jobClass + ' job" onClick="' + onClickCallback + '" style="display: none">' + name + '</div>');
     $("#" + name).show("blind", { direction: "vertical" }, 2000);
   };
   
@@ -135,7 +137,7 @@ var Storage = (function() {
     }
   }
   
-  var hasLocalStorage = function() { return !!localStorage && !$.browser.mozilla; } ;// Firefox 3.5 has localStorage but it doesn't seem to work right....
+  var hasLocalStorage = function() { return !$.browser.mozilla && !!localStorage; } ;// Firefox 3.5 has localStorage but it doesn't seem to work right....
   
   var storage = hasLocalStorage() ? { write: function(name, value) { localStorage.setItem(name, value); }, read: function(name) { return localStorage.getItem(name); } } : cookieStorage; 
   
@@ -236,10 +238,27 @@ var Hudson = (function() {
     hudsonUrl = cleanerUrl.charAt(cleanerUrl.length - 1) === '/' ? cleanerUrl : cleanerUrl + "/";
   };
 
+  var changeDescription = function(jobName, buildNumber, newDescription) {
+    var postHudsonUrl = "http://pschneider:@ccmain:8080";
+    $.ajax({
+      url: hudsonUrl + "/job/" + jobName + "/" + buildNumber + "/submitDescription",
+      dataType: 'jsonp',
+      jsonp: 'jsonp',
+      username: 'pschneider',
+      password: '',
+      data: 'description=' + newDescription,
+      success: function() { alert("stufd"); },
+      error: function(request, status, error) {
+        alert("Error: " + status);
+      }
+    });    
+  }
+
   return {
     viewsFor: viewsFor,
     jobsFor: jobsFor,
-    redirectTo: redirectTo
+    redirectTo: redirectTo,
+    changeDescription: changeDescription
   };
 })();
 
