@@ -18,10 +18,11 @@
 <div id="popup" style="display: none"></div>
 <script src="http://www.google.com/jsapi"></script>
 <script>google.load("jquery", "1.4.2"); google.load("jqueryui", "1.7.2");</script>
+<script src="http://jquery-json.googlecode.com/files/jquery.json-2.2.min.js"></script>
 <script>
 /** Watcher of Hudson jobs. */
 var Hawk = function(hudson, prey, flightPlan) {
-
+  
   var awaken = function() {
     flightPlan.requestViewAndThen(function(view) {
       var attackPlan = function() { 
@@ -37,7 +38,7 @@ var Hawk = function(hudson, prey, flightPlan) {
       var failedJobs = $(jobs).filter(function() { return this.color !== 'blue' && this.color !== 'blue_anime'; });
       prey.target(failedJobs);
       $('body').removeClass('notready').addClass('ready');
-    }
+    };
   };
   
   return { awaken: awaken };  
@@ -108,7 +109,7 @@ var Radar = function(hudson) {
     $('#jobs').prepend('<div id="' + listing.name + '" class="' + jobClass + ' job" style="display: none">' + listing.name + '</div>');
     
     $("#" + listing.name)
-      .click(function() { hudson.changeDescription(listing.name, listing.buildNumber, 'HAWWK:'); })
+//      .click(function() { hudson.changeDescription(listing.name, listing.buildNumber, 'HAWK:'); })
       .show("blind", { direction: "vertical" }, 2000);
   };
   
@@ -158,6 +159,8 @@ var Storage = (function() {
 var FlightPlan = function(storage, hudson) {
   var serverUrl = function() { return storage.read('HudsonHawk.serverUrl') };
   var viewName = function() { return storage.read('HudsonHawk.viewName') };
+  var userName = function() { return storage.read('HudsonHawk.userName') };
+  var password = function() { return storage.read('HudsonHawk.password') };
   
   var popupRequestForInfo = function(title, formBuilder, okCallback) {
     var popup = $('#popup');
@@ -166,61 +169,92 @@ var FlightPlan = function(storage, hudson) {
       buttons: { 'OK': function() {  $(this).dialog("close"); okCallback(); } },
       hide: "slide",
       modal: true,
-      width: 400,
+      width: 'auto',
+      maxWidth: 400,
+      height: 'auto',
+      maxHeight: 800,
+      closeOnEscape: true,
       title: title,
       open: function(event, ui) { formBuilder(popup); }
     });  
   };
   
-  var requestViaPopups = function(callBackAfterFlightPlan) {
+  var openSettings = function(callbackOnOk) {
     if (serverUrl()) {
-      hudson.redirectTo(serverUrl());
-      if (viewName()) {
-        callBackAfterFlightPlan(viewName());
-      } else {
-        requestView(callBackAfterFlightPlan);
-      }
-    } else {
-      popupRequestForInfo("Enter Hudson server URL", urlFormBuilder, function() {
-        var newUrl = $('#urlOption').val(); 
-        hudson.redirectTo(newUrl);
-        storage.write('HudsonHawk.serverUrl', newUrl);        
-        requestView(callBackAfterFlightPlan);        
-      });
+      hudson.redirectTo(serverUrl(), userName(), password());
+      refreshViewsOnPopup();
+      refreshUsersOnPopup();
     }
-  };
-  
-  var urlFormBuilder = function(popup) { popup.append("<input id='urlOption' class='url' value='http://'></input>"); }
-
-  var requestView = function(callBackAfterFlightPlan) {
-    hudson.viewsFor(function(views) {
-      var viewFormBuilder = function(popup) {
-        popup.append("<select id='viewOption'></select>");
-        var selector = $('#viewOption');
-        $.each(views, function(i, view) {
-          selector.append("<option value='" + view['name'] + "'>" + view['name'] + "</option>");
-        });        
-      };
-      
-      popupRequestForInfo("Choose a Hudson view to monitor", viewFormBuilder, function() {
-        var newViewName = $('#viewOption').val(); 
-        storage.write('HudsonHawk.viewName', newViewName);
-        callBackAfterFlightPlan(newViewName); 
-      });        
+    
+    popupRequestForInfo("Settings", settingsForm, function() {
+      var newUrl = $('#urlOption').val(); 
+      storage.write('HudsonHawk.serverUrl', newUrl);        
+      var newViewName = $('#viewOption').val(); 
+      storage.write('HudsonHawk.viewName', newViewName);
+      var newUsername = $('#userOption').val();
+      storage.write('HudsonHawk.userName', newUsername);  
+      var newPassword = $('#passwordOption').val();
+      storage.write('HudsonHawk.password', newPassword);      
+      hudson.redirectTo(newUrl, newUsername, newPassword);
+      callbackOnOk(newViewName);
     });
   };
-    
-  return { requestViewAndThen: requestViaPopups };
+  
+  var generateSelect = function(id, values) {
+    var selectBox = ["<select id='" + id + "'>"];
+    $.each(values, function(i, value) {
+      selectBox[i + 1] = "<option value='" + value + "'>" + value + "</option>";
+    });        
+    selectBox.push("</select>");
+    $('#' + id).replaceWith(selectBox.join(""));
+  };
+  
+  var refreshViewsOnPopup = function() {
+    $('#viewOption').replaceWith("<i id='viewOption'>Refreshing views from Hudson...</i>");
+    hudson.viewsFor(function(views) {
+      generateSelect("viewOption", $(views).map(function(i, view) { return view.name; }));
+      $('#viewOption').val(storage.read('HudsonHawk.viewName'));
+    });
+  }; 
+  
+  var refreshUsersOnPopup = function() {
+    $('#userOption').replaceWith("<i id='userOption'>Refreshing users from Hudson...</i>");
+    hudson.usersFor(function(users) {
+      generateSelect("userOption", $(users).map(function(i, user) { return user.user.fullName; }));
+      $('#userOption').val(storage.read('HudsonHawk.userName'));
+    });
+  };
+  
+  var settingsForm = function(popup) {
+    var table = "<table><tbody>" 
+                + row("Hudson URL:", "<input id='urlOption' class='url' value='" + (serverUrl() || "http://") + "'></input>") 
+                + row("View:", "<i id='viewOption'>" + (viewName() || "<none>") + "</i>")
+                + row("User:", "<i id='userOption'>" + (userName() || "<none>") + "</i>")
+                + row("Password:", "<input id='passwordOption' type='password' value='" + (password() || "") + "'></input>") 
+                + "</tbody></table>";
+    popup.append(table);
+    $('#urlOption').change(function() { 
+      refreshViewsOnPopup(); 
+      refreshUsersOnPopup();
+    });
+  };
+  
+  var row = function(prompt, formElement) {
+    return "<tr><td>" + prompt + "</td><td>" + formElement + "</td></tr>";
+  };
+  
+  return { requestViewAndThen: openSettings };
 };
 
 /** Hudson wrapper */
 var Hudson = (function() {  
   var hudsonUrl;
+  var username;
+  var password;
   
-  var callHudsonFor = function(depth, callback, view) {
-    var viewName = view ? "view/" + view + "/" : '';
+  var callHudsonFor = function(depth, callback, directory) {
     $.ajax({
-      url: hudsonUrl + viewName + 'api/json',
+      url: hudsonUrl + directory + 'api/json',
       dataType: 'jsonp',
       jsonp: 'jsonp',
       data: 'depth=' + depth,
@@ -232,33 +266,55 @@ var Hudson = (function() {
   };
   
   var viewsFor = function(callback) {
-    callHudsonFor(0, function(hudson) { callback(hudson.views); });
+    callHudsonFor(0, function(hudson) { callback(hudson.views); }, "");
+  };
+
+  var usersFor = function(callback) {
+    callHudsonFor(0, function(hudson) { callback(hudson.users); }, "people/");
   };
 
   var jobsFor = function(view, callback) {
-    callHudsonFor(1, function(hudson) { callback(hudson.jobs); }, view);
+    var viewName = view ? "view/" + view + "/" : '';
+    callHudsonFor(1, function(hudson) { callback(hudson.jobs); }, viewName);
   };
   
-  var redirectTo = function(dirtyUrl) {
+  var redirectTo = function(dirtyUrl, newUsername, newPassword) {
     var cleanerUrl = dirtyUrl.indexOf('http') > -1 ? dirtyUrl : "http://" + dirtyUrl;
     hudsonUrl = cleanerUrl.charAt(cleanerUrl.length - 1) === '/' ? cleanerUrl : cleanerUrl + "/";
+    username = newUsername;
+    password = newPassword;
   };
 
   var changeDescription = function(jobName, buildNumber, newDescription) {
-    $.ajax({
-      url: hudsonUrl + "/job/" + jobName + "/" + buildNumber + "/submitDescription",
-      data: { description: newDescription, json: '{"description": "'  + newDescription + '"}', Submit: "Submit"},
-      dataType: 'jsonp',
-      success: function() { },
-      error: function(request, status, error) {
-        alert("Error: " + status);
-      }
-    });    
+    var iframeId = "authFrame" + new Date().getTime();
+    var params = { j_username: username, j_password: password, remember_me: true, from: "/" };
+    var src = hudsonUrl + "/j_acegi_security_check?Submit=log+in&" + $.param(params) + "&json=" + $.param($.toJSON(params));
+        
+    $('#jobs').after('<iframe id="' + iframeId + '" style="display:none" src="' + src + '"></iframe>');
+    var iframe = $('iframe#' + iframeId);
+    iframe.load(function() {
+      setTimeout(function() {
+         iframe.unbind();
+         iframe.attr('src', hudsonUrl + '/job/' + jobName + '/' + buildNumber + '/submitDescription?Submit=Submit&description=' + encodeURI(newDescription) + '&json=' + $.param({ description: newDescription }));
+         iframe.load(function() {
+           setTimeout(function() {
+             iframe.unbind();
+             iframe.attr('src', hudsonUrl + '/logout');
+             iframe.load(function() {
+               setTimeout(function() {
+                 $('iframe#' + iframeId).remove();
+               }, 100);
+             });
+           }, 100);      
+         });
+      }, 100);
+    });        
   }
-
+  
   return {
     viewsFor: viewsFor,
     jobsFor: jobsFor,
+    usersFor: usersFor,
     redirectTo: redirectTo,
     changeDescription: changeDescription
   };

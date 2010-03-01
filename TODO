@@ -9,6 +9,7 @@ Items yet to do:
 - Provide special notification when Hudson is unavailable  (Do we empty the screen and display a message?  Do we grey out previous status?)
 - Provide special notification when all is well (Text?  Big thumbs up?)
 - Investigate more browser combinations (esp. IEs)
+- Auto-resize for smaller width screens (esp. side panel usage)
 
 To consider:
 - Visible indicator for number of consecutive broken builds?
