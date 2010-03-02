@@ -21,10 +21,10 @@
 <script src="http://jquery-json.googlecode.com/files/jquery.json-2.2.min.js"></script>
 <script>
 /** Watcher of Hudson jobs. */
-var Hawk = function(hudson, prey, flightPlan) {
+var Hawk = function(hudson, prey, territory) {
   
   var awaken = function() {
-    flightPlan.requestViewAndThen(function(view) {
+    territory.requestViewAndThen(function(view) {
       var attackPlan = function() { 
         hudson.jobsFor(view, thenAddTo(prey)); 
         setTimeout(attackPlan, 30000); 
@@ -93,7 +93,7 @@ var Prey = function(radar) {
   };
 };
 
-/** View of the Prey data */
+/** View of the Prey data (i.e. screen) */
 var Radar = function(hudson) {
   
   var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
@@ -121,7 +121,7 @@ var Radar = function(hudson) {
 };
 
 /**  Storage utils (via Cookies or HTML5 storage if supported) */
-var Storage = (function() {
+var Memory = (function() {
   var cookieStorage = {
     write: function(name, value) {
       var date = new Date();
@@ -156,11 +156,11 @@ var Storage = (function() {
 })();
 
 /** Configuration options */
-var FlightPlan = function(storage, hudson) {
-  var serverUrl = function() { return storage.read('HudsonHawk.serverUrl') };
-  var viewName = function() { return storage.read('HudsonHawk.viewName') };
-  var userName = function() { return storage.read('HudsonHawk.userName') };
-  var password = function() { return storage.read('HudsonHawk.password') };
+var Territory = function(memory, hudson) {
+  var serverUrl = function() { return memory.read('HudsonHawk.serverUrl') };
+  var viewName = function() { return memory.read('HudsonHawk.viewName') };
+  var userName = function() { return memory.read('HudsonHawk.userName') };
+  var password = function() { return memory.read('HudsonHawk.password') };
   
   var popupRequestForInfo = function(title, formBuilder, okCallback) {
     var popup = $('#popup');
@@ -188,13 +188,13 @@ var FlightPlan = function(storage, hudson) {
     
     popupRequestForInfo("Settings", settingsForm, function() {
       var newUrl = $('#urlOption').val(); 
-      storage.write('HudsonHawk.serverUrl', newUrl);        
+      memory.write('HudsonHawk.serverUrl', newUrl);        
       var newViewName = $('#viewOption').val(); 
-      storage.write('HudsonHawk.viewName', newViewName);
+      memory.write('HudsonHawk.viewName', newViewName);
       var newUsername = $('#userOption').val();
-      storage.write('HudsonHawk.userName', newUsername);  
+      memory.write('HudsonHawk.userName', newUsername);  
       var newPassword = $('#passwordOption').val();
-      storage.write('HudsonHawk.password', newPassword);      
+      memory.write('HudsonHawk.password', newPassword);      
       hudson.redirectTo(newUrl, newUsername, newPassword);
       callbackOnOk(newViewName);
     });
@@ -213,7 +213,7 @@ var FlightPlan = function(storage, hudson) {
     $('#viewOption').replaceWith("<i id='viewOption'>Refreshing views from Hudson...</i>");
     hudson.viewsFor(function(views) {
       generateSelect("viewOption", $(views).map(function(i, view) { return view.name; }));
-      $('#viewOption').val(storage.read('HudsonHawk.viewName'));
+      $('#viewOption').val(memory.read('HudsonHawk.viewName'));
     });
   }; 
   
@@ -221,7 +221,7 @@ var FlightPlan = function(storage, hudson) {
     $('#userOption').replaceWith("<i id='userOption'>Refreshing users from Hudson...</i>");
     hudson.usersFor(function(users) {
       generateSelect("userOption", $(users).map(function(i, user) { return user.user.fullName; }));
-      $('#userOption').val(storage.read('HudsonHawk.userName'));
+      $('#userOption').val(memory.read('HudsonHawk.userName'));
     });
   };
   
@@ -234,6 +234,7 @@ var FlightPlan = function(storage, hudson) {
                 + "</tbody></table>";
     popup.append(table);
     $('#urlOption').change(function() { 
+      hudson.redirectTo($('#urlOption').val(), userName(), password());
       refreshViewsOnPopup(); 
       refreshUsersOnPopup();
     });
@@ -323,9 +324,9 @@ var Hudson = (function() {
 var hudson = Hudson;
 var radar = Radar(hudson);
 var prey = Prey(radar);
-var storage = Storage;
-var flightPlan = FlightPlan(storage, hudson);
-var hawk = Hawk(hudson, prey, flightPlan);
+var memory = Memory;
+var territory = Territory(memory, hudson);
+var hawk = Hawk(hudson, prey, territory);
 
 hawk.awaken();
 

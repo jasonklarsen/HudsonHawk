@@ -10,6 +10,7 @@ Items yet to do:
 - Provide special notification when all is well (Text?  Big thumbs up?)
 - Investigate more browser combinations (esp. IEs)
 - Auto-resize for smaller width screens (esp. side panel usage)
+- Provide better error messages when missing Settings data is needed
 
 To consider:
 - Visible indicator for number of consecutive broken builds?
@@ -18,6 +19,7 @@ To consider:
 - Sorting builds by most recent build at the top (on first load)
 - Consider doubling size when a build breaks after someone marks on as Being Fixed
 - Consider script to strip out JS and run unit tests
+- Better hiding/encryption of passwords to Hudson.  Maybe a "ask when needed" popup instead.
 
 DONE
 - Save view in a cookie to bypass popup
