@@ -11,6 +11,7 @@ Items yet to do:
 - Investigate more browser combinations (esp. IEs)
 - Auto-resize for smaller width screens (esp. side panel usage)
 - Provide better error messages when missing Settings data is needed
+- Pulsate should not go to 0% opacity (leave 10% or so)
 
 To consider:
 - Visible indicator for number of consecutive broken builds?
