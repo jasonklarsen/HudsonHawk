@@ -6,12 +6,14 @@
   .notready { background-color: grey; }
   .ready { background-color: green; }
   .job { position: relative; text-align: center; border: 2px black solid; font-size: 400%; white-space: nowrap; cursor: pointer; }
-  .details { z-index: 10; }
-  .jobdetail { position: absolute; top: 50px; left: 50px; float: left; width: 90%; height: 90%; border: 4px black solid; font-size: 400%; white-space: nowrap; cursor: pointer; }
-  .broken { background-color: darkred; left: 0px; }
-  .failed { background-color: red; left: 0px; }
-  .passed { background-color: green; left: 0px; }
-  .unknown { background-color: yellow; left: 0px; }
+  .details { }
+  .jobdetail { border: 4px black solid; font-size: 400%; white-space: nowrap; }
+  .broken, .ui-dialog div.broken { background-color: darkred; left: 0px; }
+  .failed, .ui-dialog div.failed { background-color: red; left: 0px; }
+  .fixed, .ui-dialog div.fixed { background-color: orange; left: 0px; }
+  .flicker, .ui-dialog div.flicker { background-color: purple; left: 0px; }
+  .passed, .ui-dialog div.passed { background-color: green; left: 0px; }
+  .unknown, .ui-dialog div.unknown { background-color: yellow; left: 0px; }
   input.url { width: 350px; }
   </style>
 </head>
@@ -27,10 +29,10 @@
 var Hawk = function(hudson, prey, territory) {
   
   var awaken = function() {
-    territory.requestViewAndThen(function(view) {
+    territory.recallViewAndThen(function(view) {
       var flightPlan = function() { 
-        hudson.jobsFor(view, thenAddTo(prey)); 
-        setTimeout(flightPlan, 30000); 
+        hudson.failedJobsFor(view, thenAddTo(prey)); 
+        setTimeout(flightPlan, 60000); 
       }
       flightPlan();
     });
@@ -38,8 +40,7 @@ var Hawk = function(hudson, prey, territory) {
   
   var thenAddTo = function(prey) {
     return function(jobs) {
-      var failedJobs = $(jobs).filter(function() { return this.color !== 'blue' && this.color !== 'blue_anime'; });
-      prey.target(failedJobs);
+      prey.target(jobs);
       $('body').removeClass('notready').addClass('ready');
     };
   };
@@ -54,6 +55,7 @@ var Prey = function(radar) {
     return { name: job.name, 
              color: job.color, 
              inProgress: job.color.indexOf('anime') > -1,
+             description: job.lastCompletedBuild && job.lastCompletedBuild.description ? job.lastCompletedBuild.description: "",
              buildNumber: job.lastCompletedBuild ? job.lastCompletedBuild.number: null };
   };
  
@@ -79,7 +81,7 @@ var Prey = function(radar) {
     
     filter(listings, notInNewList).andForEach(function(i, listing) { radar.remove(listing); });
     filter(newListings, notInOldList).andForEach(function(i, listing) { radar.add(listing); });
-    filter(listings, withChangedBuildNumbers).andForEach(function(i, listing) { radar.remove(listing); radar.add(listing); });
+    filter(listings, withChangedBuildNumbers).andForEach(function(i, listing) { radar.readd(listing); });
     filter(newListings, nowInProgress).andForEach(function(i, listing) { radar.highlight(listing); });
     
     listings = newListings;
@@ -102,39 +104,64 @@ var Radar = function(hudson) {
   var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
                        blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
   
+  var readd = function(listing) {
+    removeAnd(listing, function() { add(listing); });
+  };
+  
   var remove = function(listing) {
+    removeAnd(listing, function() {});
+  };
+   
+  var removeAnd = function(listing, fxn) {
     $("#" + listing.name).hide("blind", { direction: "vertical" }, 5000);
-    setTimeout(function() { $("#" + listing.name).remove(); $("#" + listing.name + "--detail").remove(); }, 5000);
+    setTimeout(function() { $("#" + listing.name).remove(); $("#" + listing.name + "--detail").remove(); fxn(); }, 5000);
   }
   
   var revertDetail = function(listing) {
     $("#jobs").show("blind", { direction: "vertical" }, 2000);
-    $("#" + listing.name + '--detail').hide('scale', {}, 2000);
+  };
+  
+  var describeAndMark = function(listing, description, newClass) {
+    hudson.changeDescription(listing.name, listing.buildNumber, description);
+    $("#" + listing.name).removeClass("broken failed unknown passed flicker fixed").addClass(newClass);
+    $("#" + listing.name + "--detail").removeClass("broken failed unknown passed flicker fixed").addClass(newClass);
   };
   
   var explodeDetail = function(listing) {
     $("#jobs").hide('puff', {}, 2000);
-    $("#" + listing.name + '--detail').show('scale', {}, 2000);
+    $("#" + listing.name + '--detail').dialog({ 
+      buttons: { 'Mark as Fixed': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed', 'fixed'); },
+                 'Flicker': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Flicker', 'flicker'); },
+               },
+      hide: "scale",
+      width: 'auto',
+      height: 'auto',
+      modal: true,
+      resizable: false,
+      closeOnEscape: true,
+      close: function() { revertDetail(listing); }
+    });
+  };
+  
+  var descriptionBased = function(listing) {
+    return listing.description.indexOf('Build: Flicker') === 0 ? "flicker" : (listing.description.indexOf('Build: Fixed') === 0 ? "fixed" : null);
   };
   
   var add = function(listing) {
-    var jobClass = colorToState[listing.color] || 'unknown';
+    var jobClass = descriptionBased(listing) || colorToState[listing.color] || 'unknown';
     $('#jobs').prepend('<div id="' + listing.name + '" class="' + jobClass + ' job" style="display: none">' + listing.name + '</div>');
     $('#details').prepend('<div id="' + listing.name + '--detail" class="' + jobClass + ' jobdetail" style="display: none">' + listing.name + '</div>');
     
     $("#" + listing.name)
       .click(function() { explodeDetail(listing); })
-//      .click(function() { hudson.changeDescription(listing.name, listing.buildNumber, 'HAWK:'); })
       .show("blind", { direction: "vertical" }, 2000);
-    $("#" + listing.name + "--detail")
-      .click(function() { revertDetail(listing); })
   };
   
   var highlight = function(listing) {
     $("#" + listing.name).effect("pulsate", { times: 10000 }, 5000);
   };
   
-  return { remove: remove, add: add, highlight: highlight };
+  return { remove: remove, add: add, highlight: highlight, readd: readd };
 };
 
 /**  Storage utils (via Cookies or HTML5 storage if supported) */
@@ -261,7 +288,7 @@ var Territory = function(memory, hudson) {
     return "<tr><td>" + prompt + "</td><td>" + formElement + "</td></tr>";
   };
   
-  return { requestViewAndThen: openSettings };
+  return { recallViewAndThen: openSettings };
 };
 
 /** Hudson wrapper */
@@ -291,9 +318,23 @@ var Hudson = (function() {
     callHudsonFor(0, function(hudson) { callback(hudson.users); }, "people/");
   };
 
-  var jobsFor = function(view, callback) {
+  var failedJobsFor = function(view, callback) {
     var viewName = view ? "view/" + view + "/" : '';
-    callHudsonFor(1, function(hudson) { callback(hudson.jobs); }, viewName);
+    callHudsonFor(0, function(hudson) { 
+      var failedJobs = $(hudson.jobs).filter(function() { return this.color !== 'blue' && this.color !== 'blue_anime'; });
+      var count = failedJobs.length;
+      failedJobs.each(function(i, job) {
+        callHudsonFor(0, function(lastBuild) { job.lastCompletedBuild = lastBuild; count--; }, viewName + "job/" + job.name + "/lastCompletedBuild/"); 
+      });
+      var waitUntilJobDetailIsGathered = function() {
+        if (count === 0) {
+          callback(failedJobs);
+        } else {
+          setTimeout(waitUntilJobDetailIsGathered, 100);
+        }
+      };
+      setTimeout(waitUntilJobDetailIsGathered, 100);
+    }, viewName);
   };
   
   var redirectTo = function(dirtyUrl, newUsername, newPassword) {
@@ -331,7 +372,7 @@ var Hudson = (function() {
   
   return {
     viewsFor: viewsFor,
-    jobsFor: jobsFor,
+    failedJobsFor: failedJobsFor,
     usersFor: usersFor,
     redirectTo: redirectTo,
     changeDescription: changeDescription
