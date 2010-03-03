@@ -5,7 +5,9 @@
   <style>
   .notready { background-color: grey; }
   .ready { background-color: green; }
-  .job { position: relative; text-align: center; border: 2px black solid; font-size: 400%; white-space: nowrap; }
+  .job { position: relative; text-align: center; border: 2px black solid; font-size: 400%; white-space: nowrap; cursor: pointer; }
+  .details { z-index: 10; }
+  .jobdetail { position: absolute; top: 50px; left: 50px; float: left; width: 90%; height: 90%; border: 4px black solid; font-size: 400%; white-space: nowrap; cursor: pointer; }
   .broken { background-color: darkred; left: 0px; }
   .failed { background-color: red; left: 0px; }
   .passed { background-color: green; left: 0px; }
@@ -15,6 +17,7 @@
 </head>
 <body class="notready">
 <div id="jobs"></div>
+<div id="details" class="details"></div>
 <div id="popup" style="display: none"></div>
 <script src="http://www.google.com/jsapi"></script>
 <script>google.load("jquery", "1.4.2"); google.load("jqueryui", "1.7.2");</script>
@@ -25,11 +28,11 @@ var Hawk = function(hudson, prey, territory) {
   
   var awaken = function() {
     territory.requestViewAndThen(function(view) {
-      var attackPlan = function() { 
+      var flightPlan = function() { 
         hudson.jobsFor(view, thenAddTo(prey)); 
-        setTimeout(attackPlan, 30000); 
+        setTimeout(flightPlan, 30000); 
       }
-      attackPlan();
+      flightPlan();
     });
   };
   
@@ -101,16 +104,30 @@ var Radar = function(hudson) {
   
   var remove = function(listing) {
     $("#" + listing.name).hide("blind", { direction: "vertical" }, 5000);
-    setTimeout(function() { $("#" + listing.name).remove(); }, 5000);
+    setTimeout(function() { $("#" + listing.name).remove(); $("#" + listing.name + "--detail").remove(); }, 5000);
   }
+  
+  var revertDetail = function(listing) {
+    $("#jobs").show("blind", { direction: "vertical" }, 2000);
+    $("#" + listing.name + '--detail').hide('scale', {}, 2000);
+  };
+  
+  var explodeDetail = function(listing) {
+    $("#jobs").hide('puff', {}, 2000);
+    $("#" + listing.name + '--detail').show('scale', {}, 2000);
+  };
   
   var add = function(listing) {
     var jobClass = colorToState[listing.color] || 'unknown';
     $('#jobs').prepend('<div id="' + listing.name + '" class="' + jobClass + ' job" style="display: none">' + listing.name + '</div>');
+    $('#details').prepend('<div id="' + listing.name + '--detail" class="' + jobClass + ' jobdetail" style="display: none">' + listing.name + '</div>');
     
     $("#" + listing.name)
+      .click(function() { explodeDetail(listing); })
 //      .click(function() { hudson.changeDescription(listing.name, listing.buildNumber, 'HAWK:'); })
       .show("blind", { direction: "vertical" }, 2000);
+    $("#" + listing.name + "--detail")
+      .click(function() { revertDetail(listing); })
   };
   
   var highlight = function(listing) {
