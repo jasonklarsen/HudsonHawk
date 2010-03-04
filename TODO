@@ -11,6 +11,8 @@ Items yet to do:
 - Provide multiple server/views to watch
 - Provide integration into Nagios
 - Sorting builds by most recent build at the top (on first load)
+- Use jQuery ThemeBuilder stuff to build a better theme for dialog box
+- Put a meta refresh on the page for every hour or so (but uses a more subtle less flashy opening, i.e. no sliding)
 
 To consider:
 - Visible indicator for number of consecutive broken builds?

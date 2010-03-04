@@ -7,13 +7,13 @@
   .ready { background-color: green; }
   .job { position: relative; text-align: center; border: 2px black solid; font-size: 400%; white-space: nowrap; cursor: pointer; }
   .details { }
-  .jobdetail { border: 4px black solid; font-size: 400%; white-space: nowrap; }
-  .broken, .ui-dialog div.broken { background-color: darkred; left: 0px; }
-  .failed, .ui-dialog div.failed { background-color: red; left: 0px; }
-  .fixed, .ui-dialog div.fixed { background-color: orange; left: 0px; }
-  .flicker, .ui-dialog div.flicker { background-color: purple; left: 0px; }
-  .passed, .ui-dialog div.passed { background-color: green; left: 0px; }
-  .unknown, .ui-dialog div.unknown { background-color: yellow; left: 0px; }
+  .jobdetail { border: 4px black solid; font-size: 800%; white-space: nowrap; }
+  .broken, .ui-dialog div.broken { background-color: darkred; }
+  .failed, .ui-dialog div.failed { background-color: red; }
+  .fixed, .ui-dialog div.fixed { background-color: orange; }
+  .flicker, .ui-dialog div.flicker { background-color: purple; }
+  .passed, .ui-dialog div.passed { background-color: green; }
+  .unknown, .ui-dialog div.unknown { background-color: yellow; }
   input.url { width: 350px; }
   </style>
 </head>
@@ -30,18 +30,25 @@ var Hawk = function(hudson, prey, territory) {
   
   var awaken = function() {
     territory.recallViewAndThen(function(view) {
+      hudson.failedJobsFor(view, loadInto(prey)); 
       var flightPlan = function() { 
-        hudson.failedJobsFor(view, thenAddTo(prey)); 
-        setTimeout(flightPlan, 60000); 
+        hudson.failedJobsFor(view, addTo(prey)); 
+        setTimeout(flightPlan, 30000); 
       }
-      flightPlan();
+      setTimeout(flightPlan, 30000); 
     });
   };
   
-  var thenAddTo = function(prey) {
+  var loadInto = function(prey) {
+    return function(jobs) {
+      prey.initializeWith(jobs);
+      $('body').removeClass('notready').addClass('ready');
+    };
+  };
+    
+  var addTo = function(prey) {
     return function(jobs) {
       prey.target(jobs);
-      $('body').removeClass('notready').addClass('ready');
     };
   };
   
@@ -71,6 +78,11 @@ var Prey = function(radar) {
   
   var listings = Listings([]);
   
+  var initialize = function(jobs) {
+    listings = Listings(jobs);
+    $(listings.values).each(function(i, listing) { radar.load(listing); });
+  };
+  
   var target = function(jobs) {
     var newListings = Listings(jobs);
     
@@ -94,12 +106,15 @@ var Prey = function(radar) {
   }
     
   return {
-    target: target
+    target: target,
+    initializeWith: initialize
   };
 };
 
 /** View of the Prey data (i.e. screen) */
 var Radar = function(hudson) {
+  
+  var currentlyExplodedView = false;
   
   var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
                        blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
@@ -113,13 +128,9 @@ var Radar = function(hudson) {
   };
    
   var removeAnd = function(listing, fxn) {
-    $("#" + listing.name).hide("blind", { direction: "vertical" }, 5000);
-    setTimeout(function() { $("#" + listing.name).remove(); $("#" + listing.name + "--detail").remove(); fxn(); }, 5000);
+    $("#" + listing.name).hide("blind", { direction: "vertical" }, 3000);
+    setTimeout(function() { $("#" + listing.name).remove(); $("#" + listing.name + "--detail").remove(); fxn(); }, 3000);
   }
-  
-  var revertDetail = function(listing) {
-    $("#jobs").show("blind", { direction: "vertical" }, 2000);
-  };
   
   var describeAndMark = function(listing, description, newClass) {
     hudson.changeDescription(listing.name, listing.buildNumber, description);
@@ -127,7 +138,12 @@ var Radar = function(hudson) {
     $("#" + listing.name + "--detail").removeClass("broken failed unknown passed flicker fixed").addClass(newClass);
   };
   
-  var explodeDetail = function(listing) {
+  var explodeDetail = function(listing, closeAfter, andThen) {
+    if (currentlyExplodedView) {
+      setTimeout(function() { explodeDetail(listing, closeAfter, andThen); }, 500);
+      return;
+    }
+    currentlyExplodedView = true;
     $("#jobs").hide('puff', {}, 2000);
     $("#" + listing.name + '--detail').dialog({ 
       buttons: { 'Mark as Fixed': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed', 'fixed'); },
@@ -139,8 +155,11 @@ var Radar = function(hudson) {
       modal: true,
       resizable: false,
       closeOnEscape: true,
-      close: function() { revertDetail(listing); }
+      close: function() { andThen(); currentlyExplodedView = false; }
     });
+    if (closeAfter > 0) {
+      setTimeout(function() { $("#" + listing.name + '--detail').dialog('close'); }, closeAfter);
+    }
   };
   
   var descriptionBased = function(listing) {
@@ -148,20 +167,32 @@ var Radar = function(hudson) {
   };
   
   var add = function(listing) {
+    create(listing);
+    explodeDetail(listing, 5000, function() {
+      $("#jobs").show("blind", { direction: "vertical" }, 1100);
+      setTimeout(function() { $("#" + listing.name).show("blind", { direction: "vertical" }, 2000); }, 1100);
+    });
+  };
+  
+  var load = function(listing) {
+    create(listing);
+    $("#" + listing.name).show();
+  };
+  
+  var create = function(listing) {
     var jobClass = descriptionBased(listing) || colorToState[listing.color] || 'unknown';
     $('#jobs').prepend('<div id="' + listing.name + '" class="' + jobClass + ' job" style="display: none">' + listing.name + '</div>');
     $('#details').prepend('<div id="' + listing.name + '--detail" class="' + jobClass + ' jobdetail" style="display: none">' + listing.name + '</div>');
     
     $("#" + listing.name)
-      .click(function() { explodeDetail(listing); })
-      .show("blind", { direction: "vertical" }, 2000);
+      .click(function() { explodeDetail(listing, 0, function() { $("#jobs").show("blind", { direction: "vertical" }, 2000); }); });
   };
   
   var highlight = function(listing) {
     $("#" + listing.name).effect("pulsate", { times: 10000 }, 5000);
   };
   
-  return { remove: remove, add: add, highlight: highlight, readd: readd };
+  return { remove: remove, add: add, highlight: highlight, readd: readd, load: load };
 };
 
 /**  Storage utils (via Cookies or HTML5 storage if supported) */
@@ -216,6 +247,7 @@ var Territory = function(memory, hudson) {
       width: 'auto',
       maxWidth: 400,
       height: 'auto',
+      resizable: false,
       maxHeight: 800,
       closeOnEscape: true,
       title: title,
