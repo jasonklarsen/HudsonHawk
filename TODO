@@ -3,7 +3,6 @@ Items yet to do:
 - Better error handling for Hudson going down (or a failed AJAX call)
 - Provide a comment on build detail screen that is persisted like status
 - Provide special notification when Hudson is unavailable  (Do we empty the screen and display a message?  Do we grey out previous status?)
-- Provide special notification when all is well (Text?  Big thumbs up?)
 - Investigate more browser combinations (esp. IEs)
 - Provide better error messages when missing Settings data is needed
 - Pulsate should not go to 0% opacity (leave 10% or so)
@@ -20,6 +19,7 @@ To consider:
 - Consider doubling size when a build breaks after someone marks on as Being Fixed
 - Consider script to strip out JS and run unit tests on HudsonHawk
 - Better hiding/encryption of passwords to Hudson.  Maybe a "ask when needed" popup instead.
+- Provide special notification when all is well (Text?  Big thumbs up?)
 
 DONE
 - Save view in a cookie to bypass popup
