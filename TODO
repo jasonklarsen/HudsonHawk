@@ -1,4 +1,5 @@
 Items yet to do:
+- Sorting builds by most recent build at the top (on first load)
 - Auto-resize for smaller width screens (esp. side panel usage or long project names)
 - Better error handling for Hudson going down (or a failed AJAX call)
 - Provide a comment on build detail screen that is persisted like status
@@ -8,7 +9,6 @@ Items yet to do:
 - Pulsate should not go to 0% opacity (leave 10% or so)
 - Provide multiple server/views to watch
 - Provide integration into Nagios
-- Sorting builds by most recent build at the top (on first load)
 - Use jQuery ThemeBuilder stuff to build a better theme for dialog box
 - Put a meta refresh on the page for every hour or so
 
