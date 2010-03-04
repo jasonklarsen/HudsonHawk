@@ -7,14 +7,16 @@ Items yet to do:
 - Investigate more browser combinations (esp. IEs)
 - Auto-resize for smaller width screens (esp. side panel usage)
 - Provide better error messages when missing Settings data is needed
+- Provide multiple server/views to watch
+- Provide integration into Nagios
+- Sorting builds by most recent build at the top (on first load)
 
 To consider:
 - Visible indicator for number of consecutive broken builds?
 - Visible indicator for time broken? Time broken since first failure?
 - Visible indicator for time left building?
-- Sorting builds by most recent build at the top (on first load)
 - Consider doubling size when a build breaks after someone marks on as Being Fixed
-- Consider script to strip out JS and run unit tests
+- Consider script to strip out JS and run unit tests on HudsonHawk
 - Better hiding/encryption of passwords to Hudson.  Maybe a "ask when needed" popup instead.
 
 DONE
