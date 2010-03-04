@@ -1,9 +1,6 @@
 Items yet to do:
-- Provide reset button to remove view/server from cookie
+- Add Settings button to popup current settings for editing
 - Make new failed builds created an exploded detail view filling the screen
-- On failed build detail screen, can click button to mark as Flicker
-- Builds marked as Flicker are remembered in Hudson jobs detail
-- On failed build detail screen, can click button to mark as Being Fixed (and remembered like Flickers)
 - Provide a comment on build detail screen that is persisted like status
 - Provide special notification when Hudson is unavailable  (Do we empty the screen and display a message?  Do we grey out previous status?)
 - Provide special notification when all is well (Text?  Big thumbs up?)
@@ -11,14 +8,16 @@ Items yet to do:
 - Auto-resize for smaller width screens (esp. side panel usage)
 - Provide better error messages when missing Settings data is needed
 - Pulsate should not go to 0% opacity (leave 10% or so)
+- Provide multiple server/views to watch
+- Provide integration into Nagios
+- Sorting builds by most recent build at the top (on first load)
 
 To consider:
 - Visible indicator for number of consecutive broken builds?
 - Visible indicator for time broken? Time broken since first failure?
 - Visible indicator for time left building?
-- Sorting builds by most recent build at the top (on first load)
 - Consider doubling size when a build breaks after someone marks on as Being Fixed
-- Consider script to strip out JS and run unit tests
+- Consider script to strip out JS and run unit tests on HudsonHawk
 - Better hiding/encryption of passwords to Hudson.  Maybe a "ask when needed" popup instead.
 
 DONE
@@ -30,4 +29,7 @@ DONE
 - Provide better feedback during settings setup that we are still getting data for views (maybe grey background screen?)
 - Add pulsating for in-progress builds
 - Add Click on failed build to see detail
+- On failed build detail screen, can click button to mark as Flicker
+- Builds marked as Flicker are remembered in Hudson jobs detail
+- On failed build detail screen, can click button to mark as Being Fixed (and remembered like Flickers)
 
