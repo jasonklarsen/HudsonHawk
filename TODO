@@ -1,11 +1,11 @@
 Items yet to do:
+- Auto-resize for smaller width screens (esp. side panel usage or long project names)
+- Better error handling for Hudson going down (or a failed AJAX call)
 - Add Settings button to popup current settings for editing
-- Make new failed builds created an exploded detail view filling the screen
 - Provide a comment on build detail screen that is persisted like status
 - Provide special notification when Hudson is unavailable  (Do we empty the screen and display a message?  Do we grey out previous status?)
 - Provide special notification when all is well (Text?  Big thumbs up?)
 - Investigate more browser combinations (esp. IEs)
-- Auto-resize for smaller width screens (esp. side panel usage)
 - Provide better error messages when missing Settings data is needed
 - Pulsate should not go to 0% opacity (leave 10% or so)
 - Provide multiple server/views to watch
@@ -34,4 +34,5 @@ DONE
 - On failed build detail screen, can click button to mark as Flicker
 - Builds marked as Flicker are remembered in Hudson jobs detail
 - On failed build detail screen, can click button to mark as Being Fixed (and remembered like Flickers)
+- Make new failed builds created an exploded detail view filling the screen
 
