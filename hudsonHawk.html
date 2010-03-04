@@ -15,10 +15,15 @@
   .passed, .ui-dialog div.passed { background-color: green; }
   .unknown, .ui-dialog div.unknown { background-color: yellow; }
   input.url { width: 350px; }
+  #settings { position: absolute; bottom: 0; right: 0; display: none; }
+  #settings button { padding: 3px; font-size: 150%; }
+  .ready #settings { display: block; }
   </style>
 </head>
 <body class="notready">
-<div id="jobs"></div>
+<div id="jobs">
+<div id="settings"><button type="button">Settings</button></div>
+</div>
 <div id="details" class="details"></div>
 <div id="popup" style="display: none"></div>
 <script src="http://www.google.com/jsapi"></script>
@@ -37,6 +42,16 @@ var Hawk = function(hudson, prey, territory) {
       }
       setTimeout(flightPlan, 30000); 
     });
+    
+    $("#settings").click(function() { 
+      territory.openSettingsAndThen(function(view) {
+        refreshPage();
+      });
+    });  
+  };
+  
+  var refreshPage = function() {
+    location.reload(true);
   };
   
   var loadInto = function(prey) {
@@ -61,6 +76,7 @@ var Prey = function(radar) {
   var Listing = function(job) {
     return { name: job.name, 
              color: job.color, 
+             url: job.lastCompletedBuild.__url,
              inProgress: job.color.indexOf('anime') > -1,
              description: job.lastCompletedBuild && job.lastCompletedBuild.description ? job.lastCompletedBuild.description: "",
              buildNumber: job.lastCompletedBuild ? job.lastCompletedBuild.number: null };
@@ -129,7 +145,9 @@ var Radar = function(hudson) {
    
   var removeAnd = function(listing, fxn) {
     $("#" + listing.name).hide("blind", { direction: "vertical" }, 3000);
-    setTimeout(function() { $("#" + listing.name).remove(); $("#" + listing.name + "--detail").remove(); fxn(); }, 3000);
+    setTimeout(function() { $("#" + listing.name).dialog('destroy'); $("#" + listing.name).remove(); 
+                            $("#" + listing.name + "--detail").dialog('destroy'); $("#" + listing.name + "--detail").remove(); 
+                            fxn(); }, 3000);
   }
   
   var describeAndMark = function(listing, description, newClass) {
@@ -148,6 +166,7 @@ var Radar = function(hudson) {
     $("#" + listing.name + '--detail').dialog({ 
       buttons: { 'Mark as Fixed': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed', 'fixed'); },
                  'Flicker': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Flicker', 'flicker'); },
+                 'View In Hudson': function() {  window.open(listing.url); }
                },
       hide: "scale",
       width: 'auto',
@@ -255,6 +274,15 @@ var Territory = function(memory, hudson) {
     });  
   };
   
+  var openSettingsIfNotFilledIn = function(callbackOnOk) {
+    if (serverUrl() && viewName() && userName()) {
+      hudson.redirectTo(serverUrl(), userName(), password());
+      callbackOnOk(viewName());
+    } else {
+      openSettings(callbackOnOk);
+    }
+  };
+  
   var openSettings = function(callbackOnOk) {
     if (serverUrl()) {
       hudson.redirectTo(serverUrl(), userName(), password());
@@ -320,7 +348,7 @@ var Territory = function(memory, hudson) {
     return "<tr><td>" + prompt + "</td><td>" + formElement + "</td></tr>";
   };
   
-  return { recallViewAndThen: openSettings };
+  return { recallViewAndThen: openSettingsIfNotFilledIn, openSettingsAndThen: openSettings };
 };
 
 /** Hudson wrapper */
@@ -330,14 +358,15 @@ var Hudson = (function() {
   var password;
   
   var callHudsonFor = function(depth, callback, directory) {
+    var requestUrl = hudsonUrl + directory;
     $.ajax({
-      url: hudsonUrl + directory + 'api/json',
+      url: requestUrl + 'api/json',
       dataType: 'jsonp',
       jsonp: 'jsonp',
       data: 'depth=' + depth,
-      success: callback,
+      success: function(hudson) { hudson.__url = requestUrl; callback(hudson); },
       error: function(request, status, error) {
-        alert("Error: " + status);
+        alert("Error: " + requestUrl);
       }
     });    
   };

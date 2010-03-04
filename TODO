@@ -1,7 +1,6 @@
 Items yet to do:
 - Auto-resize for smaller width screens (esp. side panel usage or long project names)
 - Better error handling for Hudson going down (or a failed AJAX call)
-- Add Settings button to popup current settings for editing
 - Provide a comment on build detail screen that is persisted like status
 - Provide special notification when Hudson is unavailable  (Do we empty the screen and display a message?  Do we grey out previous status?)
 - Provide special notification when all is well (Text?  Big thumbs up?)
@@ -12,7 +11,7 @@ Items yet to do:
 - Provide integration into Nagios
 - Sorting builds by most recent build at the top (on first load)
 - Use jQuery ThemeBuilder stuff to build a better theme for dialog box
-- Put a meta refresh on the page for every hour or so (but uses a more subtle less flashy opening, i.e. no sliding)
+- Put a meta refresh on the page for every hour or so
 
 To consider:
 - Visible indicator for number of consecutive broken builds?
@@ -35,4 +34,5 @@ DONE
 - Builds marked as Flicker are remembered in Hudson jobs detail
 - On failed build detail screen, can click button to mark as Being Fixed (and remembered like Flickers)
 - Make new failed builds created an exploded detail view filling the screen
+- Add Settings button to popup current settings for editing
 
