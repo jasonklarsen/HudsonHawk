@@ -11,6 +11,8 @@ Items yet to do:
 - Provide integration into Nagios
 - Use jQuery ThemeBuilder stuff to build a better theme for dialog box
 - Put a meta refresh on the page for every hour or so
+- Queue description changes
+- Provide a visual indicator of the change description actions
 
 To consider:
 - Visible indicator for number of consecutive broken builds?

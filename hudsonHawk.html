@@ -114,13 +114,13 @@ var Prey = function(radar) {
     
     var notInNewList = function(i, listing) { return !newListings.names[listing.name]; };
     var notInOldList = function(i, listing) { return !currentListings.names[listing.name]; };
-    var withChangedBuildNumbers = function(i, listing) { return newListings.names[listing.name] && listing.buildNumber !== newListings.names[listing.name].buildNumber; };
+    var withChangedBuildNumbers = function(i, listing) { return currentListings.names[listing.name] && listing.buildNumber !== currentListings.names[listing.name].buildNumber; };
     var nowInProgress = function(i, listing) { return listing.inProgress; };
     var withChangedState = function(i, listing) { return currentListings.names[listing.name] && listing.state !== currentListings.names[listing.name].state; };
     
     filter(currentListings, notInNewList).andForEach(function(i, listing) { radar.remove(listing); });
     filter(newListings, notInOldList).andForEach(function(i, listing) { radar.add(listing); });
-    filter(currentListings, withChangedBuildNumbers).andForEach(function(i, listing) { radar.readd(listing); });
+    filter(newListings, withChangedBuildNumbers).andForEach(function(i, listing) { radar.readd(listing); });
     filter(newListings, nowInProgress).andForEach(function(i, listing) { radar.highlight(listing); });
     filter(newListings, withChangedState).andForEach(function(i, listing) { radar.changeState(listing); });
     
