@@ -5,9 +5,9 @@
   <style>
   .notready { background-color: grey; }
   .ready { background-color: green; }
-  .job { position: relative; text-align: center; border: 2px black solid; font-size: 400%; white-space: nowrap; cursor: pointer; }
+  .job { margin: 6px; text-shadow: 2px 2px 5px #000; font-weight:bold; color:#fff; -webkit-box-shadow: 3px 3px 4px #000; -webkit-border-radius: 10px; position: relative; text-align: center; border: 2px black solid; font-family: sans-serif; font-size: 400%; white-space: nowrap; cursor: pointer; }
   .details { }
-  .jobdetail { border: 4px black solid; font-size: 800%; white-space: nowrap; }
+  .jobdetail { border: 4px black solid; font-size: 500%; white-space: nowrap; }
   .broken, .ui-dialog div.broken { background-color: darkred; }
   .failed, .ui-dialog div.failed { background-color: red; }
   .fixed, .ui-dialog div.fixed { background-color: orange; }
@@ -423,7 +423,6 @@ var Hudson = (function() {
     var src = hudsonUrl + "/j_acegi_security_check?Submit=log+in&" + $.param(params) + "&json=" + $.param($.toJSON(params));
         
     $('body').prepend('<iframe id="' + iframeId + '" style="display:none" src="' + src + '"></iframe>');
-//    $('#jobs').after('<iframe id="' + iframeId + '" style="display:none" src="' + src + '"></iframe>');
     var iframe = $('iframe#' + iframeId);
     iframe.load(function() {
       setTimeout(function() {
