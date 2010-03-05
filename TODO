@@ -12,7 +12,7 @@ Items yet to do:
 - Use jQuery ThemeBuilder stuff to build a better theme for dialog box
 - Put a meta refresh on the page for every hour or so
 - Queue description changes
-- Provide a visual indicator of the change description actions
+- Provide a visual indicator of the change description actions (so we can see when the flicker state *does* get set....)
 
 To consider:
 - Visible indicator for number of consecutive broken builds?
@@ -22,6 +22,9 @@ To consider:
 - Consider script to strip out JS and run unit tests on HudsonHawk
 - Better hiding/encryption of passwords to Hudson.  Maybe a "ask when needed" popup instead.
 - Provide special notification when all is well (Text?  Big thumbs up?)
+- Showing in progress green builds
+- Shrinking "Build: Fixed" jobs
+- Consider "scrolling" solution if number of builds spans the whole screen
 
 DONE
 - Save view in a cookie to bypass popup
