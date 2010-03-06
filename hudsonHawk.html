@@ -417,31 +417,59 @@ var Hudson = (function() {
     password = newPassword;
   };
 
+  var descriptionQueue = [];
   var changeDescription = function(jobName, buildNumber, newDescription) {
+    descriptionQueue.push({ job: jobName, num: buildNumber, desc: newDescription });
+    
+    if (!descriptionQueue.inProgress) {
+      descriptionQueue.inProgress = true;
+      login();
+    } else if (changeDescription.loggingOut) {
+      setTimeout(login, 1000);
+    }
+  };
+  
+  var continueTo = function(iframe, src, callback) {
+    return function() {
+      setTimeout(function() {
+        iframe.unbind();
+        iframe.attr('src', src);
+        iframe.load(callback);
+      }, 100);
+    };
+  };
+  
+  var login = function() {
     var iframeId = "authFrame" + new Date().getTime();
     var params = { j_username: username, j_password: password, remember_me: true, from: "/" };
-    var src = hudsonUrl + "/j_acegi_security_check?Submit=log+in&" + $.param(params) + "&json=" + $.param($.toJSON(params));
-        
-    $('body').prepend('<iframe id="' + iframeId + '" style="display:none" src="' + src + '"></iframe>');
+    var loginSrc = hudsonUrl + "/j_acegi_security_check?Submit=log+in&" + $.param(params) + "&json=" + $.param($.toJSON(params));
+    $('body').prepend('<iframe id="' + iframeId + '" style="display:none" src="' + loginSrc + '"></iframe>');
     var iframe = $('iframe#' + iframeId);
-    iframe.load(function() {
+    iframe.load(continueTo(iframe, loginSrc, processDescriptionQueueWith(iframe)));
+  };
+  
+  var processDescriptionQueueWith = function(iframe) {
+    if (descriptionQueue.length == 0) {
+      return logoutWith(iframe);
+    } else {
+      var change = descriptionQueue.shift();
+      var changeSrc = hudsonUrl + '/job/' + change.job + '/' + change.num + '/submitDescription?Submit=Submit&description=' + encodeURI(change.desc) + '&json=' + $.param({ description: change.desc });
+      return continueTo(iframe, changeSrc, processDescriptionQueueWith(iframe));
+    }
+  };
+  
+  var logoutWith = function(iframe) {
+    changeDescription.loggingOut = true;
+    var iframeId = iframe.id;
+    var logoutSrc = hudsonUrl + '/logout';
+    return continueTo(iframe, logoutSrc, function() {
       setTimeout(function() {
-         iframe.unbind();
-         iframe.attr('src', hudsonUrl + '/job/' + jobName + '/' + buildNumber + '/submitDescription?Submit=Submit&description=' + encodeURI(newDescription) + '&json=' + $.param({ description: newDescription }));
-         iframe.load(function() {
-           setTimeout(function() {
-             iframe.unbind();
-             iframe.attr('src', hudsonUrl + '/logout');
-             iframe.load(function() {
-               setTimeout(function() {
-                 $('iframe#' + iframeId).remove();
-               }, 100);
-             });
-           }, 100);      
-         });
+        $('iframe#' + iframeId).remove();
+        descriptionQueue.inProgress = false;
+        changeDescription.loggingOut = false;
       }, 100);
-    });        
-  }
+    });
+  };
   
   return {
     viewsFor: viewsFor,

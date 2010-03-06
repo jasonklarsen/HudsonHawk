@@ -1,4 +1,6 @@
 Items yet to do:
+- Implement retry mechanism for failed status changes
+- Provide a visual indicator of the change description actions (so we can see when the flicker state *does* get set....)
 - Sorting builds by most recent build at the top (on first load)
 - Auto-resize for smaller width screens (esp. side panel usage or long project names)
 - Better error handling for Hudson going down (or a failed AJAX call)
@@ -11,8 +13,6 @@ Items yet to do:
 - Provide integration into Nagios
 - Use jQuery ThemeBuilder stuff to build a better theme for dialog box
 - Put a meta refresh on the page for every hour or so
-- Queue description changes
-- Provide a visual indicator of the change description actions (so we can see when the flicker state *does* get set....)
 
 To consider:
 - Visible indicator for number of consecutive broken builds?
@@ -40,4 +40,5 @@ DONE
 - On failed build detail screen, can click button to mark as Being Fixed (and remembered like Flickers)
 - Make new failed builds created an exploded detail view filling the screen
 - Add Settings button to popup current settings for editing
+- Queue description changes
 
