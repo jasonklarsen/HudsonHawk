@@ -1,6 +1,10 @@
+Bugs:
+
 Items yet to do:
 - Implement retry mechanism for failed status changes
 - Provide a visual indicator of the change description actions (so we can see when the flicker state *does* get set....)
+- Add a re-build button
+- Add a revert to original status button
 - Sorting builds by most recent build at the top (on first load)
 - Auto-resize for smaller width screens (esp. side panel usage or long project names)
 - Better error handling for Hudson going down (or a failed AJAX call)
@@ -8,7 +12,6 @@ Items yet to do:
 - Provide special notification when Hudson is unavailable  (Do we empty the screen and display a message?  Do we grey out previous status?)
 - Investigate more browser combinations (esp. IEs)
 - Provide better error messages when missing Settings data is needed
-- Pulsate should not go to 0% opacity (leave 10% or so)
 - Provide multiple server/views to watch
 - Provide integration into Nagios
 - Use jQuery ThemeBuilder stuff to build a better theme for dialog box
@@ -41,4 +44,15 @@ DONE
 - Make new failed builds created an exploded detail view filling the screen
 - Add Settings button to popup current settings for editing
 - Queue description changes
+- Pulsate should not go to 0% opacity (leave 10% or so) -- Also try not to utilise 100% of a CPU when building.
+- In progress notification seems to take an extra refresh cycle to register.  TestCase: Simply open screen when a known build is in progress.  Highlights only after a refresh.
+
+Features 
+- Able to choose a Hudson view for running against.  So, only need to maintain group information in one place, Hudson.
+- Automatically refreshes status, alerting for newly broken builds and broken builds that are now in progress with a new run.
+- Detailed information popup (when clicking on a failed build) that:
+  - Allows you to view the build in Hudson
+  - Change the status to customs statuses: Fixed and Flicker  (which is persisted in Hudson for other concurrent Hudson Hawks to use)
+- Configuration settings persisted in local storage (cookies or HTML5 storage)
+
 

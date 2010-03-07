@@ -7,7 +7,7 @@
   .ready { background-color: green; }
   .job { margin: 6px; text-shadow: 2px 2px 5px #000; font-weight:bold; color:#fff; -webkit-box-shadow: 3px 3px 4px #000; -webkit-border-radius: 10px; position: relative; text-align: center; border: 2px black solid; font-family: sans-serif; font-size: 400%; white-space: nowrap; cursor: pointer; }
   .details { }
-  .jobdetail { border: 4px black solid; font-size: 500%; white-space: nowrap; }
+  .jobdetail { border: 4px black solid; font-size: 500%; white-space: nowrap; text-shadow: 2px 2px 5px #000; font-weight:bold; color:#fff; font-family: sans-serif; }
   .broken, .ui-dialog div.broken { background-color: darkred; }
   .failed, .ui-dialog div.failed { background-color: red; }
   .fixed, .ui-dialog div.fixed { background-color: orange; }
@@ -107,7 +107,10 @@ var Prey = function(radar) {
   var initialize = function(jobs) {
     currentListings = Listings(jobs);
     $(currentListings.values).each(function(i, listing) { radar.load(listing); });
+    filter(currentListings, filterNowInProgress).andForEach(function(i, listing) { radar.highlight(listing); });
   };
+  
+  var filterNowInProgress = function(i, listing) { return listing.inProgress; };
   
   var target = function(jobs) {
     var newListings = Listings(jobs);
@@ -115,13 +118,12 @@ var Prey = function(radar) {
     var notInNewList = function(i, listing) { return !newListings.names[listing.name]; };
     var notInOldList = function(i, listing) { return !currentListings.names[listing.name]; };
     var withChangedBuildNumbers = function(i, listing) { return currentListings.names[listing.name] && listing.buildNumber !== currentListings.names[listing.name].buildNumber; };
-    var nowInProgress = function(i, listing) { return listing.inProgress; };
     var withChangedState = function(i, listing) { return currentListings.names[listing.name] && listing.state !== currentListings.names[listing.name].state; };
     
     filter(currentListings, notInNewList).andForEach(function(i, listing) { radar.remove(listing); });
     filter(newListings, notInOldList).andForEach(function(i, listing) { radar.add(listing); });
     filter(newListings, withChangedBuildNumbers).andForEach(function(i, listing) { radar.readd(listing); });
-    filter(newListings, nowInProgress).andForEach(function(i, listing) { radar.highlight(listing); });
+    filter(currentListings, filterNowInProgress).andForEach(function(i, listing) { radar.highlight(listing); });
     filter(newListings, withChangedState).andForEach(function(i, listing) { radar.changeState(listing); });
     
     currentListings = newListings;
@@ -216,8 +218,42 @@ var Radar = function(hudson) {
   };
   
   var highlight = function(listing) {
+    var itemWhenInitiallyCalled = $("#" + listing.name).get(0);
+    var elem = function() { return (itemWhenInitiallyCalled === $("#" + listing.name).get(0)) ? $(itemWhenInitiallyCalled) : $('objectThatDoesntExist'); }
+    var fadeOut = function() {
+      elem().fadeTo(2000, 0.3, function() {
+        if ($.contains(document.body, item))  { setTimeout(fadeIn, 4000); }
+      });
+    };
+    var fadeIn = function(item) {
+      elem().fadeTo(2000, 1, function() {
+        setTimeout(fadeOut, 2000);
+      });
+    };
+    fadeOut();
+  };
+  
+  // Using jQuery.animate() consumes a whole processor since it runs every 13 ms switching colors.  Above highlight should be ~60% less processing.... 
+  var orig_highlight = function(listing) {
     $("#" + listing.name).effect("pulsate", { times: 10000 }, 5000);
   };
+  
+  // An alternate to consider if aesthetically more pleasing than newer highlighting options
+  var alt_highlight = function(listing) {
+    var item = $("#" + listing.name).get(0);
+    var elem = function() { return (item === $("#" + listing.name).get(0)) ? item : $('objectThatDoesntExist'); }
+    var fadeOut = function() {
+      elem().switchClass(listing.state, 'passed', 2500, 'linear', function() {
+        setTimeout(fadeIn, 0);
+      });
+    };
+    var fadeIn = function(item) {
+      elem().switchClass('passed', listing.state, 2500, 'linear', function() {
+        setTimeout(fadeOut, 0);
+      });
+    };
+    fadeOut();
+  }; 
   
   var changeState = function(listing) {
     removeAllClasses(listing, listing.state);
@@ -418,6 +454,7 @@ var Hudson = (function() {
   };
 
   var descriptionQueue = [];
+  var descriptionConfirmQueue = [];
   var changeDescription = function(jobName, buildNumber, newDescription) {
     descriptionQueue.push({ job: jobName, num: buildNumber, desc: newDescription });
     
@@ -432,9 +469,7 @@ var Hudson = (function() {
   var continueTo = function(iframe, src, callback) {
     return function() {
       setTimeout(function() {
-        iframe.unbind();
-        iframe.attr('src', src);
-        iframe.load(callback);
+        iframe.unbind().attr('src', src).load(callback);
       }, 100);
     };
   };
@@ -454,7 +489,7 @@ var Hudson = (function() {
     } else {
       var change = descriptionQueue.shift();
       var changeSrc = hudsonUrl + '/job/' + change.job + '/' + change.num + '/submitDescription?Submit=Submit&description=' + encodeURI(change.desc) + '&json=' + $.param({ description: change.desc });
-      return continueTo(iframe, changeSrc, processDescriptionQueueWith(iframe));
+      return continueTo(iframe, changeSrc, function() { processDescriptionQueueWith(iframe); descriptionConfirmQueue.push(change); });
     }
   };
   
