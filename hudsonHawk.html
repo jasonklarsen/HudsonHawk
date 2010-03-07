@@ -6,8 +6,16 @@
   .notready { background-color: grey; }
   .ready { background-color: green; }
   .job { margin: 6px; text-shadow: 2px 2px 5px #000; font-weight:bold; color:#fff; -webkit-box-shadow: 3px 3px 4px #000; -webkit-border-radius: 10px; position: relative; text-align: center; border: 2px black solid; font-family: sans-serif; font-size: 400%; white-space: nowrap; cursor: pointer; }
-  .details { }
+  .mini .job { text-shadow: 1px 1px 3px #000; -webkit-box-shadow: none; -webkit-border-radius: 0; font-size: 100%; }
   .jobdetail { border: 4px black solid; font-size: 500%; white-space: nowrap; text-shadow: 2px 2px 5px #000; font-weight:bold; color:#fff; font-family: sans-serif; }
+  
+  .mini .jobdetail { font-size: 125%; text-shadow: 1px 1px 3px #000; }
+  .mini .ui-dialog { padding: 0; }
+  .mini .ui-dialog .ui-dialog-titlebar { padding: 0; }
+  .mini .ui-dialog .ui-dialog-buttonpane { padding: 0 0 0 5px; }
+  .mini .ui-dialog .ui-dialog-buttonpane button { padding: 0; }
+  .mini .ui-widget { font-size: 0.9em; }
+   
   .broken, .ui-dialog div.broken { background-color: darkred; }
   .failed, .ui-dialog div.failed { background-color: red; }
   .fixed, .ui-dialog div.fixed { background-color: orange; }
@@ -41,13 +49,7 @@ var Hawk = function(hudson, prey, territory) {
         setTimeout(flightPlan, 30000); 
       }
       setTimeout(flightPlan, 30000); 
-    });
-    
-    $("#settings").click(function() { 
-      territory.openSettingsAndThen(function(view) {
-        refreshPage();
-      });
-    });  
+    });    
   };
   
   var refreshPage = function() {
@@ -259,7 +261,20 @@ var Radar = function(hudson) {
     removeAllClasses(listing, listing.state);
   };
   
-  return { remove: remove, add: add, highlight: highlight, readd: readd, load: load, changeState: changeState };
+  var enable = function() {
+    $("#settings").click(function() { 
+      territory.openSettingsAndThen(function(view) {
+        refreshPage();
+      });
+    });
+    
+    var params = window.location.href.slice(window.location.href.indexOf('?') + 1);
+    if (params.indexOf('mini') > -1) {
+      $('body').addClass('mini');
+    }
+  };
+  
+  return { remove: remove, add: add, highlight: highlight, readd: readd, load: load, changeState: changeState, enable: enable };
 };
 
 /**  Storage utils (via Cookies or HTML5 storage if supported) */
@@ -454,7 +469,7 @@ var Hudson = (function() {
   };
 
   var descriptionQueue = [];
-  var descriptionConfirmQueue = [];
+  //var descriptionConfirmQueue = [];
   var changeDescription = function(jobName, buildNumber, newDescription) {
     descriptionQueue.push({ job: jobName, num: buildNumber, desc: newDescription });
     
@@ -522,6 +537,7 @@ var memory = Memory;
 var territory = Territory(memory, hudson);
 var hawk = Hawk(hudson, prey, territory);
 
+radar.enable();
 hawk.awaken();
 
 </script>

@@ -3,10 +3,10 @@ Bugs:
 Items yet to do:
 - Implement retry mechanism for failed status changes
 - Provide a visual indicator of the change description actions (so we can see when the flicker state *does* get set....)
-- Add a re-build button
+- Show svn user name that checked-in in exploded popup
+- Show svn user name from upstream builds in downstream failure
 - Add a revert to original status button
 - Sorting builds by most recent build at the top (on first load)
-- Auto-resize for smaller width screens (esp. side panel usage or long project names)
 - Better error handling for Hudson going down (or a failed AJAX call)
 - Provide a comment on build detail screen that is persisted like status
 - Provide special notification when Hudson is unavailable  (Do we empty the screen and display a message?  Do we grey out previous status?)
@@ -15,7 +15,6 @@ Items yet to do:
 - Provide multiple server/views to watch
 - Provide integration into Nagios
 - Use jQuery ThemeBuilder stuff to build a better theme for dialog box
-- Put a meta refresh on the page for every hour or so
 
 To consider:
 - Visible indicator for number of consecutive broken builds?
@@ -28,6 +27,8 @@ To consider:
 - Showing in progress green builds
 - Shrinking "Build: Fixed" jobs
 - Consider "scrolling" solution if number of builds spans the whole screen
+- Put a meta refresh on the page for every hour or so (to hide any memory leaks with jQueryUI)
+- Add a re-build button (or should they be required to look at the build?) 
 
 DONE
 - Save view in a cookie to bypass popup
@@ -46,6 +47,7 @@ DONE
 - Queue description changes
 - Pulsate should not go to 0% opacity (leave 10% or so) -- Also try not to utilise 100% of a CPU when building.
 - In progress notification seems to take an extra refresh cycle to register.  TestCase: Simply open screen when a known build is in progress.  Highlights only after a refresh.
+- Auto-resize for smaller width screens (esp. side panel usage or long project names)
 
 Features 
 - Able to choose a Hudson view for running against.  So, only need to maintain group information in one place, Hudson.
@@ -54,5 +56,5 @@ Features
   - Allows you to view the build in Hudson
   - Change the status to customs statuses: Fixed and Flicker  (which is persisted in Hudson for other concurrent Hudson Hawks to use)
 - Configuration settings persisted in local storage (cookies or HTML5 storage)
-
+- Mini mode can be specified by adding the http parameter 'mini'.  This shrinks the side suitable for very small widths (like Firefox side bar usage)
 
