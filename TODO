@@ -6,7 +6,6 @@ Items yet to do:
 - Show svn user name that checked-in in exploded popup
 - Show svn user name from upstream builds in downstream failure
 - Add a revert to original status button
-- Sorting builds by most recent build at the top (on first load)
 - Better error handling for Hudson going down (or a failed AJAX call)
 - Provide a comment on build detail screen that is persisted like status
 - Provide special notification when Hudson is unavailable  (Do we empty the screen and display a message?  Do we grey out previous status?)
@@ -48,6 +47,7 @@ DONE
 - Pulsate should not go to 0% opacity (leave 10% or so) -- Also try not to utilise 100% of a CPU when building.
 - In progress notification seems to take an extra refresh cycle to register.  TestCase: Simply open screen when a known build is in progress.  Highlights only after a refresh.
 - Auto-resize for smaller width screens (esp. side panel usage or long project names)
+- Sorting builds by most recent build at the top (on first load)
 
 Features 
 - Able to choose a Hudson view for running against.  So, only need to maintain group information in one place, Hudson.

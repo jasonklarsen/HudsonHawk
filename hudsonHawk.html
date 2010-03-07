@@ -224,7 +224,7 @@ var Radar = function(hudson) {
     var elem = function() { return (itemWhenInitiallyCalled === $("#" + listing.name).get(0)) ? $(itemWhenInitiallyCalled) : $('objectThatDoesntExist'); }
     var fadeOut = function() {
       elem().fadeTo(2000, 0.3, function() {
-        if ($.contains(document.body, item))  { setTimeout(fadeIn, 4000); }
+        setTimeout(fadeIn, 4000);
       });
     };
     var fadeIn = function(item) {
@@ -452,6 +452,7 @@ var Hudson = (function() {
       });
       var waitUntilJobDetailIsGathered = function() {
         if (count === 0) {
+          failedJobs.sort(function(a, b) { return a.lastCompletedBuild.timestamp - b.lastCompletedBuild.timestamp});
           callback(failedJobs);
         } else {
           setTimeout(waitUntilJobDetailIsGathered, 100);
