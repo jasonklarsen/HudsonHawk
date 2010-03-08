@@ -52,10 +52,6 @@ var Hawk = function(hudson, prey, territory) {
     });    
   };
   
-  var refreshPage = function() {
-    location.reload(true);
-  };
-  
   var loadInto = function(prey) {
     return function(jobs) {
       prey.initializeWith(jobs);
@@ -264,7 +260,7 @@ var Radar = function(hudson) {
   var enable = function() {
     $("#settings").click(function() { 
       territory.openSettingsAndThen(function(view) {
-        refreshPage();
+        location.reload(true);
       });
     });
     
