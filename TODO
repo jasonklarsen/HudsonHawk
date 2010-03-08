@@ -21,7 +21,6 @@ Minor items yet to do:
 - Use jQuery ThemeBuilder stuff to build a better theme for dialog box
 
 To consider:
-- Visible indicator for number of consecutive broken builds?
 - Visible indicator for time broken? Time broken since first failure?
 - Visible indicator for time left building?
 - Consider doubling size when a build breaks after someone marks on as Being Fixed
@@ -62,5 +61,6 @@ DONE
 - In progress notification seems to take an extra refresh cycle to register.  TestCase: Simply open screen when a known build is in progress.  Highlights only after a refresh.
 - Auto-resize for smaller width screens (esp. side panel usage or long project names)
 - Sorting builds by most recent build at the top (on first load)
+- Visible indicator for number of consecutive broken builds
 
 

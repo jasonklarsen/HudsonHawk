@@ -5,10 +5,12 @@
   <style>
   .notready { background-color: grey; }
   .ready { background-color: green; }
-  .job { margin: 6px; text-shadow: 2px 2px 5px #000; font-weight:bold; color:#fff; -webkit-box-shadow: 3px 3px 4px #000; -webkit-border-radius: 10px; position: relative; text-align: center; border: 2px black solid; font-family: sans-serif; font-size: 400%; white-space: nowrap; cursor: pointer; }
-  .mini .job { text-shadow: 1px 1px 3px #000; -webkit-box-shadow: none; -webkit-border-radius: 0; font-size: 100%; }
+  .job { margin: 6px; text-shadow: 2px 2px 5px #000; font-weight:bold; color:#fff; -webkit-box-shadow: 3px 3px 4px #000; -webkit-border-radius: 10px; position: relative; text-align: center; border: 2px black solid; font-family: sans-serif; font-size: 375%; white-space: nowrap; cursor: pointer; }
+  .job .count { color: #bbb; }
   .jobdetail { border: 4px black solid; font-size: 500%; white-space: nowrap; text-shadow: 2px 2px 5px #000; font-weight:bold; color:#fff; font-family: sans-serif; }
+  .jobdetail .count { font-size: 50%; color: #bbb; }
   
+  .mini .job { text-shadow: 1px 1px 3px #000; -webkit-box-shadow: none; -webkit-border-radius: 0; font-size: 100%; }
   .mini .jobdetail { font-size: 125%; text-shadow: 1px 1px 3px #000; }
   .mini .ui-dialog { padding: 0; }
   .mini .ui-dialog .ui-dialog-titlebar { padding: 0; }
@@ -85,9 +87,10 @@ var Prey = function(radar) {
     var newDescription = job.lastCompletedBuild && job.lastCompletedBuild.description ? job.lastCompletedBuild.description: "";
     return { name: job.name, 
              state: getState(job.color, newDescription), 
-             url: job.lastCompletedBuild.__url,
+             url: job.lastCompletedBuild.url,
              inProgress: job.color.indexOf('anime') > -1,
              description: newDescription,
+             numberSinceFailure: parseInt(job.lastCompletedBuild.number) - parseInt(job.lastStableBuild.number),
              buildNumber: job.lastCompletedBuild ? job.lastCompletedBuild.number: null };
   };
  
@@ -209,8 +212,9 @@ var Radar = function(hudson) {
   };
   
   var create = function(listing) {
-    $('#jobs').prepend('<div id="' + listing.name + '" class="' + listing.state + ' job" style="display: none">' + listing.name + '</div>');
-    $('#details').prepend('<div id="' + listing.name + '--detail" class="' + listing.state + ' jobdetail" style="display: none">' + listing.name + '</div>');
+    $('#jobs').prepend('<div id="' + listing.name + '" class="' + listing.state + ' job" style="display: none">' + listing.name + ' <span class="count">(' + listing.numberSinceFailure + ')</span></div>');
+    $('#details').prepend('<div id="' + listing.name + '--detail" class="' + listing.state + ' jobdetail" style="display: none">' + listing.name 
+                          + '<div class="count">Failed for last ' + listing.numberSinceFailure + ' builds</div></div>');
     
     $("#" + listing.name)
       .click(function() { explodeDetail(listing, 0, function() { $("#jobs").show("blind", { direction: "vertical" }, 2000); }); });
@@ -446,7 +450,11 @@ var Hudson = (function() {
       var failedJobs = $(hudson.jobs).filter(function() { return this.color !== 'blue' && this.color !== 'blue_anime'; });
       var count = failedJobs.length;
       failedJobs.each(function(i, job) {
-        callHudsonFor(0, function(lastBuild) { job.lastCompletedBuild = lastBuild; count--; }, viewName + "job/" + job.name + "/lastCompletedBuild/"); 
+        callHudsonFor(0, function(jobDetail) { 
+          job.lastCompletedBuild = jobDetail.lastCompletedBuild; 
+          job.lastStableBuild = jobDetail.lastStableBuild; 
+          count--; 
+        }, viewName + "job/" + job.name + "/"); 
       });
       var waitUntilJobDetailIsGathered = function() {
         if (count === 0) {
