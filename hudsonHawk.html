@@ -52,14 +52,16 @@ var Hawk = function(hudson, prey, territory) {
       hudson.failedJobsFor(view, loadInto(prey)); 
       
       var flightPlan = function() { 
-        hudson.failedJobsFor(view, function() {
+        var xhr = hudson.failedJobsFor(view, function() {
           prey.target(jobs); 
           setTimeout(flightPlan, 30000); 
         });
-      }
-      setTimeout(flightPlan, 30000); 
+//        setTimeout(function() { xhr.abort(); flightPlan(); }, 300000);
+      };
+      setTimeout(flightPlan, 30000);       
     });    
   };
+  
   
   var loadInto = function(prey) {
     return function(jobs) {
@@ -423,7 +425,7 @@ var Hudson = (function() {
   
   var callHudsonFor = function(depth, callback, directory) {
     var requestUrl = hudsonUrl + directory;
-    $.ajax({
+    return $.ajax({
       url: requestUrl + 'api/json',
       dataType: 'jsonp',
       jsonp: 'jsonp',
@@ -437,20 +439,20 @@ var Hudson = (function() {
   };
   
   var viewsFor = function(callback) {
-    callHudsonFor(0, function(hudson) { callback(hudson.views); }, "");
+    return callHudsonFor(0, function(hudson) { callback(hudson.views); }, "");
   };
 
   var usersFor = function(callback) {
-    callHudsonFor(0, function(hudson) { callback(hudson.users); }, "people/");
+    return callHudsonFor(0, function(hudson) { callback(hudson.users); }, "people/");
   };
 
   var failedJobsFor = function(view, callback) {
     var viewName = view ? "view/" + view + "/" : '';
-    callHudsonFor(0, function(hudson) { 
+    return callHudsonFor(0, function(hudson) { 
       var failedJobs = $(hudson.jobs).filter(function() { return this.color !== 'blue' && this.color !== 'blue_anime'; });
       var count = failedJobs.length;
       failedJobs.each(function(i, job) {
-        callHudsonFor(0, function(jobDetail) { 
+        callHudsonFor(1, function(jobDetail) { 
           job.lastCompletedBuild = jobDetail.lastCompletedBuild; 
           job.lastStableBuild = jobDetail.lastStableBuild; 
           count--; 
