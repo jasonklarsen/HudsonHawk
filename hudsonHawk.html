@@ -44,9 +44,12 @@ var Hawk = function(hudson, prey, territory) {
   var awaken = function() {
     territory.recallViewAndThen(function(view) {
       hudson.failedJobsFor(view, loadInto(prey)); 
+      
       var flightPlan = function() { 
-        hudson.failedJobsFor(view, addTo(prey)); 
-        setTimeout(flightPlan, 30000); 
+        hudson.failedJobsFor(view, function() {
+          prey.target(jobs); 
+          setTimeout(flightPlan, 30000); 
+        });
       }
       setTimeout(flightPlan, 30000); 
     });    
@@ -63,12 +66,6 @@ var Hawk = function(hudson, prey, territory) {
     };
   };
     
-  var addTo = function(prey) {
-    return function(jobs) {
-      prey.target(jobs);
-    };
-  };
-  
   return { awaken: awaken };  
 };
 
@@ -427,6 +424,7 @@ var Hudson = (function() {
       dataType: 'jsonp',
       jsonp: 'jsonp',
       data: 'depth=' + depth,
+      timeout: 10000,
       success: function(hudson) { hudson.__url = requestUrl; callback(hudson); },
       error: function(request, status, error) {
         alert("Error: " + requestUrl);
