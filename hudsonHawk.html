@@ -181,8 +181,8 @@ var Radar = function(hudson) {
     currentlyExplodedView = true;
     $("#jobs").hide('puff', {}, 2000);
     $("#" + listing.name + '--detail').dialog({ 
-      buttons: { 'Mark as Fixed': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed', 'fixed'); },
-                 'Flicker': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Flicker', 'flicker'); },
+      buttons: { 'Status: Fixed': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed', 'fixed'); },
+                 'Status: Flicker': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Flicker', 'flicker'); },
                  'View In Hudson': function() {  window.open(listing.url); }
                },
       hide: "scale",

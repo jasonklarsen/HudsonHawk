@@ -1,18 +1,23 @@
 Bugs:
 
-Items yet to do:
-- Implement retry mechanism for failed status changes
+Major items yet to do:
+- Provide multiple server/views to watch
+- Provide integration into Nagios
+- Provide a Trace view that allows you to trace a given job and see a tree of builds that have been triggered by that job (or were triggered by that job)
+- Provide a User view that allows you to see all of your checkins or Forced builds and track the current status of that job and its downstream jobs
+
+Minor items yet to do:
+- Make buttons disappear that are no longer relevant (e.g. 'Status: Fixed' if build is already Fixed)
+- Add a revert to original status button
 - Provide a visual indicator of the change description actions (so we can see when the flicker state *does* get set....)
+- Implement retry mechanism for failed status changes
 - Show svn user name that checked-in in exploded popup
 - Show svn user name from upstream builds in downstream failure
-- Add a revert to original status button
 - Better error handling for Hudson going down (or a failed AJAX call)
 - Provide a comment on build detail screen that is persisted like status
 - Provide special notification when Hudson is unavailable  (Do we empty the screen and display a message?  Do we grey out previous status?)
 - Investigate more browser combinations (esp. IEs)
 - Provide better error messages when missing Settings data is needed
-- Provide multiple server/views to watch
-- Provide integration into Nagios
 - Use jQuery ThemeBuilder stuff to build a better theme for dialog box
 
 To consider:
@@ -28,6 +33,15 @@ To consider:
 - Consider "scrolling" solution if number of builds spans the whole screen
 - Put a meta refresh on the page for every hour or so (to hide any memory leaks with jQueryUI)
 - Add a re-build button (or should they be required to look at the build?) 
+
+Features 
+- Able to choose a Hudson view for running against.  So, only need to maintain group information in one place, Hudson.
+- Automatically refreshes status, alerting for newly broken builds and broken builds that are now in progress with a new run.
+- Detailed information popup (when clicking on a failed build) that:
+  - Allows you to view the build in Hudson
+  - Change the status to customs statuses: Fixed and Flicker  (which is persisted in Hudson for other concurrent Hudson Hawks to use)
+- Configuration settings persisted in local storage (cookies or HTML5 storage)
+- Mini mode can be specified by adding the http parameter 'mini'.  This shrinks the side suitable for very small widths (like Firefox side bar usage)
 
 DONE
 - Save view in a cookie to bypass popup
@@ -49,12 +63,4 @@ DONE
 - Auto-resize for smaller width screens (esp. side panel usage or long project names)
 - Sorting builds by most recent build at the top (on first load)
 
-Features 
-- Able to choose a Hudson view for running against.  So, only need to maintain group information in one place, Hudson.
-- Automatically refreshes status, alerting for newly broken builds and broken builds that are now in progress with a new run.
-- Detailed information popup (when clicking on a failed build) that:
-  - Allows you to view the build in Hudson
-  - Change the status to customs statuses: Fixed and Flicker  (which is persisted in Hudson for other concurrent Hudson Hawks to use)
-- Configuration settings persisted in local storage (cookies or HTML5 storage)
-- Mini mode can be specified by adding the http parameter 'mini'.  This shrinks the side suitable for very small widths (like Firefox side bar usage)
 
