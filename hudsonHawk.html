@@ -59,9 +59,13 @@ var Hawk = function(hudson, prey, territory) {
 //        setTimeout(function() { xhr.abort(); flightPlan(); }, 300000);
       };
       setTimeout(flightPlan, 30000);       
-    });    
+    });
+    setupFullPageRefresh();
   };
   
+  var setupFullPageRefresh = function() {
+    setTimeout(function() { location.reload(true); }, 3600000);
+  };
   
   var loadInto = function(prey) {
     return function(jobs) {
