@@ -52,7 +52,7 @@ var Hawk = function(hudson, prey, territory) {
       hudson.failedJobsFor(view, loadInto(prey)); 
       
       var flightPlan = function() { 
-        var xhr = hudson.failedJobsFor(view, function() {
+        var xhr = hudson.failedJobsFor(view, function(jobs) {
           prey.target(jobs); 
           setTimeout(flightPlan, 30000); 
         });
@@ -94,10 +94,10 @@ var Prey = function(radar) {
     var newDescription = job.lastCompletedBuild && job.lastCompletedBuild.description ? job.lastCompletedBuild.description: "";
     return { name: job.name, 
              state: getState(job.color, newDescription), 
-             url: job.lastCompletedBuild.url,
+             url: job.lastCompletedBuild ? job.lastCompletedBuild.url : "",
              inProgress: job.color.indexOf('anime') > -1,
              description: newDescription,
-             numberSinceFailure: parseInt(job.lastCompletedBuild.number) - parseInt(job.lastStableBuild.number),
+             numberSinceFailure: job.lastCompletedBuild && job.lastStableBuild ? parseInt(job.lastCompletedBuild.number) - parseInt(job.lastStableBuild.number) : "??",
              buildNumber: job.lastCompletedBuild ? job.lastCompletedBuild.number: null };
   };
  
@@ -123,7 +123,7 @@ var Prey = function(radar) {
   
   var target = function(jobs) {
     var newListings = Listings(jobs);
-    
+
     var notInNewList = function(i, listing) { return !newListings.names[listing.name]; };
     var notInOldList = function(i, listing) { return !currentListings.names[listing.name]; };
     var withChangedBuildNumbers = function(i, listing) { return currentListings.names[listing.name] && listing.buildNumber !== currentListings.names[listing.name].buildNumber; };
