@@ -7,6 +7,7 @@ Major items yet to do:
 - Provide a User view that allows you to see all of your checkins or Forced builds and track the current status of that job and its downstream jobs
 
 Minor items yet to do:
+- Create a bottom bar that includes last update time, current server and view and Settings button (which floats over any builds)
 - Make buttons disappear that are no longer relevant (e.g. 'Status: Fixed' if build is already Fixed)
 - Add a revert to original status button
 - Provide a visual indicator of the change description actions (so we can see when the flicker state *does* get set....)
@@ -32,6 +33,8 @@ To consider:
 - Consider "scrolling" solution if number of builds spans the whole screen
 - Put a meta refresh on the page for every hour or so (to hide any memory leaks with jQueryUI)
 - Add a re-build button (or should they be required to look at the build?) 
+
+
 
 Features 
 - Able to choose a Hudson view for running against.  So, only need to maintain group information in one place, Hudson.
