@@ -26,6 +26,7 @@
   .fixed, .ui-dialog div.fixed { background-color: orange; }
   .flicker, .ui-dialog div.flicker { background-color: purple; color: white; }
   .passed, .ui-dialog div.passed { background-color: green; }
+  .aborted, .ui-dialog div.aborted { background-color: yellow; }
   .unknown, .ui-dialog div.unknown { background-color: yellow; }
 
   input.url { width: 350px; }
@@ -50,27 +51,29 @@ var Hawk = function(hudson, prey, territory) {
   var awaken = function() {
     territory.recallViewAndThen(function(view) {
       hudson.failedJobsFor(view, loadInto(prey)); 
-      
-      var flightPlan = function() { 
-        var xhr = hudson.failedJobsFor(view, function(jobs) {
-          prey.target(jobs); 
-          setTimeout(flightPlan, 30000); 
-        });
-//        setTimeout(function() { xhr.abort(); flightPlan(); }, 300000);
-      };
-      setTimeout(flightPlan, 30000);       
+      beginSurveillanceOver(view);
     });
-    setupFullPageRefresh();
+    setupRefresh();
   };
   
-  var setupFullPageRefresh = function() {
-    setTimeout(function() { location.reload(true); }, 3600000);
+  var beginSurveillanceOver = function(view) {
+    var flightPlan = function() { 
+      var xhr = hudson.failedJobsFor(view, function(jobs) {
+        prey.target(jobs); 
+        setTimeout(flightPlan, 30000); 
+      });
+//      setTimeout(function() { xhr.abort(); flightPlan(); }, 300000);
+    };
+    setTimeout(flightPlan, 30000);  
+  };
+  
+  var setupRefresh = function() {
+    setTimeout(function() { location.reload(true); }, 3600000); // 1 hour
   };
   
   var loadInto = function(prey) {
     return function(jobs) {
       prey.initializeWith(jobs);
-      $('body').removeClass('notready').addClass('ready');
     };
   };
     
@@ -80,31 +83,36 @@ var Hawk = function(hudson, prey, territory) {
 /** Hudson jobs to watch for */
 var Prey = function(radar) {
 
-  var getState = function(color, newDescription) {
-    var colorToState = { red: "broken", red_anime: "broken", yellow: "failed", yellow_anime: "failed",
-                         blue: "passed", blue_anime: "passed", aborted: "unknown", aborted_anime: "unknown" }
-    var descriptionBased = function(newDescription) {
-      return newDescription.indexOf('Build: Flicker') === 0 ? "flicker" : (newDescription.indexOf('Build: Fixed') === 0 ? "fixed" : null);
+  var colorToState = { red: "broken", yellow: "failed", blue: "passed", aborted: "aborted" };
+  
+  var getState = function(color, description) {
+    var fromColor = function() {
+      return colorToState[color.replace("_anime", "")]; 
+    };
+    var fromDescription = function() {
+      return description.indexOf('Build: Flicker') === 0 ? "flicker" : (description.indexOf('Build: Fixed') === 0 ? "fixed" : null);
     };  
-    return descriptionBased(newDescription) || colorToState[color] || 'unknown';
+    
+    return fromDescription() || fromColor() || 'unknown';
   };
   
   var Listing = function(job) {
     var newDescription = job.lastCompletedBuild && job.lastCompletedBuild.description ? job.lastCompletedBuild.description: "";
-    return { name: job.name, 
-             state: getState(job.color, newDescription), 
-             url: job.lastCompletedBuild ? job.lastCompletedBuild.url : "",
-             inProgress: job.color.indexOf('anime') > -1,
-             description: newDescription,
+    return { name:               job.name, 
+             state:              getState(job.color, newDescription), 
+             url:                job.lastCompletedBuild ? job.lastCompletedBuild.url : "",
+             inProgress:         job.color.indexOf('anime') > -1,
+             description:        newDescription,
              numberSinceFailure: job.lastCompletedBuild && job.lastStableBuild ? parseInt(job.lastCompletedBuild.number) - parseInt(job.lastStableBuild.number) : "??",
-             buildNumber: job.lastCompletedBuild ? job.lastCompletedBuild.number: null };
+             buildNumber:        job.lastCompletedBuild ? job.lastCompletedBuild.number: null };
   };
  
   var Listings = function(jobs) {
-    var names = {}, values = [];
-    $(jobs).each(function(i, job) {
-      var value = Listing(job);
-      names[job.name] = value;
+    var names = {}, 
+        values = [];
+    $(jobs).each(function() {
+      var value = Listing(this);
+      names[this.name] = value;
       values.push(value);
     });
     return { names: names, values: values };
@@ -114,8 +122,9 @@ var Prey = function(radar) {
   
   var initialize = function(jobs) {
     currentListings = Listings(jobs);
-    $(currentListings.values).each(function(i, listing) { radar.load(listing); });
-    filter(currentListings, filterNowInProgress).andForEach(function(i, listing) { radar.highlight(listing); });
+    $(currentListings.values).each(function() { radar.load(this); });
+    filter(currentListings, filterNowInProgress).andForEach(radar.highlight);
+    radar.enable();
   };
   
   var filterNowInProgress = function(i, listing) { return listing.inProgress; };
@@ -128,18 +137,18 @@ var Prey = function(radar) {
     var withChangedBuildNumbers = function(i, listing) { return currentListings.names[listing.name] && listing.buildNumber !== currentListings.names[listing.name].buildNumber; };
     var withChangedState = function(i, listing) { return currentListings.names[listing.name] && listing.state !== currentListings.names[listing.name].state; };
     
-    filter(currentListings, notInNewList).andForEach(function(i, listing) { radar.remove(listing); });
-    filter(newListings, notInOldList).andForEach(function(i, listing) { radar.add(listing); });
-    filter(newListings, withChangedBuildNumbers).andForEach(function(i, listing) { radar.readd(listing); });
-    filter(currentListings, filterNowInProgress).andForEach(function(i, listing) { radar.highlight(listing); });
-    filter(newListings, withChangedState).andForEach(function(i, listing) { radar.changeState(listing); });
+    filter(currentListings, notInNewList)           .andForEach(radar.remove);
+    filter(newListings,     notInOldList)           .andForEach(radar.add);
+    filter(newListings,     withChangedBuildNumbers).andForEach(radar.readd);
+    filter(currentListings, filterNowInProgress)    .andForEach(radar.highlight);
+    filter(newListings,     withChangedState)       .andForEach(radar.changeState);
     
     currentListings = newListings;
   };
   
   var filter = function(listings, filterFxn) { 
-    return { andForEach: function(closure) { 
-      $(listings.values).filter(filterFxn).each(closure);
+    return { andForEach: function(fxn) { 
+      $(listings.values).filter(filterFxn).each(function() { fxn(this); });
     } };
   }
     
@@ -175,8 +184,8 @@ var Radar = function(hudson) {
   };
   
   var removeAllClasses = function(listing, newClass) {
-    $("#" + listing.name).removeClass("broken failed unknown passed flicker fixed").addClass(newClass);
-    $("#" + listing.name + "--detail").removeClass("broken failed unknown passed flicker fixed").addClass(newClass);  
+    $("#" + listing.name).removeClass("broken failed unknown aborted passed flicker fixed").addClass(newClass);
+    $("#" + listing.name + "--detail").removeClass("broken failed unknown aborted passed flicker fixed").addClass(newClass);  
   }
   
   var explodeDetail = function(listing, closeAfter, andThen) {
@@ -185,11 +194,11 @@ var Radar = function(hudson) {
       return;
     }
     currentlyExplodedView = true;
-    $("#jobs").hide('puff', {}, 2000);
+    $("#jobs").hide('puff', {}, 1000);
     $("#" + listing.name + '--detail').dialog({ 
       buttons: { 'Status: Fixed': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed', 'fixed'); },
                  'Status: Flicker': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Flicker', 'flicker'); },
-                 'View In Hudson': function() {  window.open(listing.url); }
+                 'View In Hudson': function() {  $(this).dialog("close"); window.open(listing.url); }
                },
       hide: "scale",
       width: 'auto',
@@ -249,8 +258,8 @@ var Radar = function(hudson) {
   
   // An alternate to consider if aesthetically more pleasing than newer highlighting options
   var alt_highlight = function(listing) {
-    var item = $("#" + listing.name).get(0);
-    var elem = function() { return (item === $("#" + listing.name).get(0)) ? item : $('objectThatDoesntExist'); }
+    var itemWhenInitiallyCalled = $("#" + listing.name).get(0);
+    var elem = function() { return (itemWhenInitiallyCalled === $("#" + listing.name).get(0)) ? $(itemWhenInitiallyCalled) : $('objectThatDoesntExist'); }
     var fadeOut = function() {
       elem().switchClass(listing.state, 'passed', 2500, 'linear', function() {
         setTimeout(fadeIn, 0);
@@ -279,6 +288,7 @@ var Radar = function(hudson) {
     if (params.indexOf('mini') > -1) {
       $('body').addClass('mini');
     }
+    $('body').removeClass('notready').addClass('ready');
   };
   
   return { remove: remove, add: add, highlight: highlight, readd: readd, load: load, changeState: changeState, enable: enable };
@@ -386,7 +396,7 @@ var Territory = function(memory, hudson) {
   var refreshViewsOnPopup = function() {
     $('#viewOption').replaceWith("<i id='viewOption'>Refreshing views from Hudson...</i>");
     hudson.viewsFor(function(views) {
-      generateSelect("viewOption", $(views).map(function(i, view) { return view.name; }));
+      generateSelect("viewOption", $(views).map(function() { return this.name; }));
       $('#viewOption').val(memory.read('HudsonHawk.viewName'));
     });
   }; 
@@ -394,7 +404,7 @@ var Territory = function(memory, hudson) {
   var refreshUsersOnPopup = function() {
     $('#userOption').replaceWith("<i id='userOption'>Refreshing users from Hudson...</i>");
     hudson.usersFor(function(users) {
-      generateSelect("userOption", $(users).map(function(i, user) { return user.user.fullName; }));
+      generateSelect("userOption", $(users).map(function() { return this.user.fullName; }));
       $('#userOption').val(memory.read('HudsonHawk.userName'));
     });
   };
@@ -453,7 +463,7 @@ var Hudson = (function() {
   var failedJobsFor = function(view, callback) {
     var viewName = view ? "view/" + view + "/" : '';
     return callHudsonFor(0, function(hudson) { 
-      var failedJobs = $(hudson.jobs).filter(function() { return this.color !== 'blue' && this.color !== 'blue_anime'; });
+      var failedJobs = $(hudson.jobs).filter(function() { return this.color.indexOf('blue') !== 0; });
       var count = failedJobs.length;
       failedJobs.each(function(i, job) {
         callHudsonFor(1, function(jobDetail) { 
@@ -464,7 +474,7 @@ var Hudson = (function() {
       });
       var waitUntilJobDetailIsGathered = function() {
         if (count === 0) {
-          failedJobs.sort(function(a, b) { return a.lastCompletedBuild.timestamp - b.lastCompletedBuild.timestamp});
+          failedJobs.sort(byTimestampAscending);
           callback(failedJobs);
         } else {
           setTimeout(waitUntilJobDetailIsGathered, 100);
@@ -473,6 +483,12 @@ var Hudson = (function() {
       setTimeout(waitUntilJobDetailIsGathered, 100);
     }, viewName);
   };
+  
+  var byTimestampAscending = function(a, b) { 
+    var aStamp = a.lastCompletedBuild ? a.lastCompletedBuild : 0; 
+    var bStamp = b.lastCompletedBuild ? b.lastCompletedBuild : 0; 
+    return aStamp - bStamp; 
+  }
   
   var redirectTo = function(dirtyUrl, newUsername, newPassword) {
     var cleanerUrl = dirtyUrl.indexOf('http') > -1 ? dirtyUrl : "http://" + dirtyUrl;
@@ -550,7 +566,6 @@ var memory = Memory;
 var territory = Territory(memory, hudson);
 var hawk = Hawk(hudson, prey, territory);
 
-radar.enable();
 hawk.awaken();
 
 </script>

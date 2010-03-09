@@ -6,9 +6,9 @@ Major items yet to do:
 - Provide integration into Nagios
 - Provide a Trace view that allows you to trace a given job and see a tree of builds that have been triggered by that job (or were triggered by that job)
 - Provide a User view that allows you to see all of your checkins or Forced builds and track the current status of that job and its downstream jobs
+- Create integration test with a fake server(s) with canned data
 
 Minor items yet to do:
-- Make View in Hudson button close popup
 - Make bar with project info like a progress bar indicating time remaining (rather than blinking)
 - Remove buttons on exploded alert popup
 - Create a bottom bar that includes last update time, current server and view and Settings button (which floats over any builds)
@@ -39,6 +39,7 @@ To consider:
 - Add a re-build button (or should they be required to look at the build?) 
 
 
+IMPLEMENTED:
 
 Features 
 - Able to choose a Hudson view for running against.  So, only need to maintain group information in one place, Hudson.
@@ -49,7 +50,7 @@ Features
 - Configuration settings persisted in local storage (cookies or HTML5 storage)
 - Mini mode can be specified by adding the http parameter 'mini'.  This shrinks the side suitable for very small widths (like Firefox side bar usage)
 
-DONE
+Items
 - Save view in a cookie to bypass popup
 - Use HTML5 storage to save data (if supported).  Allows Chrome usage as file:// to persist settings.
 - Specify Hudson server in a popup
@@ -69,5 +70,6 @@ DONE
 - Auto-resize for smaller width screens (esp. side panel usage or long project names)
 - Sorting builds by most recent build at the top (on first load)
 - Visible indicator for number of consecutive broken builds
+- Make View in Hudson button close popup
 
 
