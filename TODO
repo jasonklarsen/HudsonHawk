@@ -1,4 +1,5 @@
 Bugs:
+- When using as a side bar in Firefox, View in Hudson button appears in new window
 
 Major items yet to do:
 - Provide multiple server/views to watch
@@ -7,6 +8,9 @@ Major items yet to do:
 - Provide a User view that allows you to see all of your checkins or Forced builds and track the current status of that job and its downstream jobs
 
 Minor items yet to do:
+- Make View in Hudson button close popup
+- Make bar with project info like a progress bar indicating time remaining (rather than blinking)
+- Remove buttons on exploded alert popup
 - Create a bottom bar that includes last update time, current server and view and Settings button (which floats over any builds)
 - Make buttons disappear that are no longer relevant (e.g. 'Status: Fixed' if build is already Fixed)
 - Add a revert to original status button
