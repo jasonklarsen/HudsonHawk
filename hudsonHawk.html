@@ -101,7 +101,8 @@ var Prey = function(radar) {
     return { name:               job.name, 
              state:              getState(job.color, newDescription), 
              url:                job.lastCompletedBuild ? job.lastCompletedBuild.url : "",
-             inProgress:         job.color.indexOf('anime') > -1,
+             inProgress:         job.color.indexOf('anime') > -1 || job.inProgress,
+             progress:           job.progress,
              description:        newDescription,
              numberSinceFailure: job.lastCompletedBuild && job.lastStableBuild ? parseInt(job.lastCompletedBuild.number) - parseInt(job.lastStableBuild.number) : "??",
              buildNumber:        job.lastCompletedBuild ? job.lastCompletedBuild.number: null };
@@ -236,6 +237,16 @@ var Radar = function(hudson) {
   };
   
   var highlight = function(listing) {
+    fade_highlight(listing);
+  };
+  
+  var progress_highlight = function(listing) {
+    $("#" + listing.name).fadeTo(0, 0.4)
+       .append("<div id='" + listing.name + "--progress' style='width: " + (100 - listing.progress) + "%; height: 100%; position: absolute; right: 0; top: 0;'>&nbsp;</div>");
+    $("#" + listing.name + "--progress").fadeTo(0, 1).addClass($("#" + listing.name).className);
+  };
+  
+  var fade_highlight = function(listing) {
     var itemWhenInitiallyCalled = $("#" + listing.name).get(0);
     var elem = function() { return (itemWhenInitiallyCalled === $("#" + listing.name).get(0)) ? $(itemWhenInitiallyCalled) : $('objectThatDoesntExist'); }
     var fadeOut = function() {
@@ -468,7 +479,19 @@ var Hudson = (function() {
       failedJobs.each(function(i, job) {
         callHudsonFor(1, function(jobDetail) { 
           job.lastCompletedBuild = jobDetail.lastCompletedBuild; 
-          job.lastStableBuild = jobDetail.lastStableBuild; 
+          job.lastStableBuild = jobDetail.lastStableBuild;
+          if (jobDetail.lastBuild.building) {
+            count++;
+            callHudsonFor(1, function(slaveDetail) {
+              job.inProgress = true;
+              $.each(slaveDetail.executors, function() {
+                if (this.currentExecutable && this.currentExecutable.number === jobDetail.lastBuild.number) {
+                  job.progress = this.progress;
+                }
+              });
+              count--;
+            }, 'computer/' + jobDetail.lastBuild.builtOn + '/');
+          }
           count--; 
         }, viewName + "job/" + job.name + "/"); 
       });
