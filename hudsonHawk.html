@@ -60,11 +60,11 @@ var Hawk = function(hudson, prey, territory) {
     var flightPlan = function() { 
       var xhr = hudson.failedJobsFor(view, function(jobs) {
         prey.target(jobs); 
-        setTimeout(flightPlan, 30000); 
+        setTimeout(flightPlan, 10000); 
       });
 //      setTimeout(function() { xhr.abort(); flightPlan(); }, 300000);
     };
-    setTimeout(flightPlan, 30000);  
+    setTimeout(flightPlan, 10000);  
   };
   
   var setupRefresh = function() {
@@ -228,22 +228,28 @@ var Radar = function(hudson) {
   };
   
   var create = function(listing) {
-    $('#jobs').prepend('<div id="' + listing.name + '" class="' + listing.state + ' job" style="display: none">' + listing.name + ' <span class="count">(' + listing.numberSinceFailure + ')</span></div>');
+    $('#jobs').prepend('<div id="' + listing.name + '" class="' + listing.state + ' job" style="display: none"><span>' + listing.name + ' <span class="count">(' + listing.numberSinceFailure + ')</span></span></div>');
     $('#details').prepend('<div id="' + listing.name + '--detail" class="' + listing.state + ' jobdetail" style="display: none">' + listing.name 
-                          + '<div class="count">Failed for last ' + listing.numberSinceFailure + ' builds</div></div>');
+                          + '<div class="count">Failed for last ' + listing.numberSinceFailure + ' builds'
+                          + (listing.progress ? ', and is ' + listing.progress + '% complete.' : '.') + '</div></div>');
     
     $("#" + listing.name)
       .click(function() { explodeDetail(listing, 0, function() { $("#jobs").show("blind", { direction: "vertical" }, 2000); }); });
   };
   
   var highlight = function(listing) {
-    fade_highlight(listing);
+    progress_highlight(listing);
   };
   
   var progress_highlight = function(listing) {
-    $("#" + listing.name).fadeTo(0, 0.4)
-       .append("<div id='" + listing.name + "--progress' style='width: " + (100 - listing.progress) + "%; height: 100%; position: absolute; right: 0; top: 0;'>&nbsp;</div>");
-    $("#" + listing.name + "--progress").fadeTo(0, 1).addClass($("#" + listing.name).className);
+    $("#" + listing.name + "--progress1").remove();
+    $("#" + listing.name + "--progress2").remove();
+    
+    $("#" + listing.name)
+       .append("<div id='" + listing.name + "--progress1' class='" + listing.state + "' style='z-index: -1; width: " + (listing.progress) + "%; height: 100%; position: absolute; left: 0; top: 0;'>&nbsp;</div>")
+       .append("<div id='" + listing.name + "--progress2' class='" + listing.state + "' style='z-index: -1; width: " + (100 - listing.progress) + "%; height: 100%; position: absolute; right: 0; top: 0;'>&nbsp;</div>")
+       .removeClass(listing.state);;
+    $("#" + listing.name + "--progress1").fadeTo(0, 0.5);
   };
   
   var fade_highlight = function(listing) {
