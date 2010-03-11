@@ -110,8 +110,7 @@ var Prey = function(radar) {
   };
  
   var Listings = function(jobs) {
-    var names = {}, 
-        values = [];
+    var names = {}, values = [];
     $(jobs).each(function() {
       var value = Listing(this);
       names[this.name] = value;
@@ -161,7 +160,7 @@ var Prey = function(radar) {
 };
 
 /** View of the Prey data (i.e. screen) */
-var Radar = function(hudson) {
+var Radar = function(hudson, memory) {
   
   var currentlyExplodedView = false;
   
@@ -175,8 +174,8 @@ var Radar = function(hudson) {
    
   var removeAnd = function(listing, fxn) {
     $("#" + listing.name).hide("blind", { direction: "vertical" }, 3000);
-    setTimeout(function() { $("#" + listing.name).dialog('destroy'); $("#" + listing.name).remove(); 
-                            $("#" + listing.name + "--detail").dialog('destroy'); $("#" + listing.name + "--detail").remove(); 
+    setTimeout(function() { $("#" + listing.name).dialog('destroy').remove(); 
+                            $("#" + listing.name + "--detail").dialog('destroy').remove(); 
                             fxn(); }, 3000);
   }
   
@@ -197,9 +196,10 @@ var Radar = function(hudson) {
     }
     currentlyExplodedView = true;
     $("#jobs").hide('puff', {}, 1000);
+    var username = memory.read('HudsonHawk.userName');
     $("#" + listing.name + '--detail').dialog({ 
-      buttons: { 'Status: Fixed': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed', 'fixed'); },
-                 'Status: Flicker': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Flicker', 'flicker'); },
+      buttons: { 'Status: Fixed': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed' + (username ? " by " + username : ""), 'fixed'); },
+                 'Status: Flicker': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Flicker' + (username ? " by " + username : ""), 'flicker'); },
                  'View In Hudson': function() {  $(this).dialog("close"); window.open(listing.url); }
                },
       hide: "scale",
@@ -232,7 +232,8 @@ var Radar = function(hudson) {
     $('#jobs').prepend('<div id="' + listing.name + '" class="' + listing.state + ' job" style="display: none"><span>' + listing.name + ' <span class="count">(' + listing.numberSinceFailure + ')</span></span></div>');
     $('#details').prepend('<div id="' + listing.name + '--detail" class="' + listing.state + ' jobdetail" style="display: none">' + listing.name 
                           + '<div class="count">Failed for last ' + listing.numberSinceFailure + ' builds'
-                          + (listing.progress ? ', and is ' + listing.progress + '% complete.' : '.') + '</div></div>');
+                          + (listing.progress ? ', and is ' + listing.progress + '% complete' : '') + '</div>'
+                          + (listing.description ? '<div class="count">' + listing.description + '</div>' : '') +'</div>');
     
     $("#" + listing.name)
       .click(function() { explodeDetail(listing, 0, function() { $("#jobs").show("blind", { direction: "vertical" }, 2000); }); });
@@ -460,7 +461,7 @@ var Hudson = function() {
   var username;
   var password;
   
-  var callHudsonFor = function(depth, callback, directory) {
+  var callHudsonFor = function(directory, depth, callback) {
     var requestUrl = hudsonUrl + directory;
     return $.ajax({
       url: requestUrl + 'api/json',
@@ -476,32 +477,34 @@ var Hudson = function() {
   };
   
   var viewsFor = function(callback) {
-    return callHudsonFor(0, function(hudson) { callback(hudson.views); }, "");
+    return callHudsonFor("", 0, function(hudson) { callback(hudson.views); });
   };
 
   var usersFor = function(callback) {
-    return callHudsonFor(0, function(hudson) { callback(hudson.users); }, "people/");
+    return callHudsonFor("people/", 0, function(hudson) { callback(hudson.users); });
   };
 
   var failedJobsFor = function(view, callback) {
     var viewName = view ? "view/" + view + "/" : '';
-    return callHudsonFor(0, function(hudson) { 
+    return callHudsonFor(viewName, 0, function(hudson) { 
       var failedJobs = $(hudson.jobs).filter(function() { return this.color.indexOf('blue') !== 0; });
-      var count = failedJobs.length;
+      
+      var count = failedJobs.length; 
       failedJobs.each(function(i, job) {
-        callHudsonFor(1, function(jobDetail) { 
+        callHudsonFor(viewName + "job/" + job.name + "/", 1, function(jobDetail) { 
           job.lastCompletedBuild = jobDetail.lastCompletedBuild; 
           job.lastStableBuild = jobDetail.lastStableBuild;
           if (jobDetail.lastBuild.building) {
             count++;
-            callHudsonFor(1, function(slaveDetail) {
+            callHudsonFor('computer/' + jobDetail.lastBuild.builtOn + '/', 1, function(slaveDetail) {
               updateJobProgress(job, slaveDetail, jobDetail);
               count--;
-            }, 'computer/' + jobDetail.lastBuild.builtOn + '/');
+            });
           }
           count--; 
-        }, viewName + "job/" + job.name + "/"); 
+        }); 
       });
+      
       var waitUntilJobDetailIsGathered = function() {
         if (count === 0) {
           failedJobs.sort(byTimestampAscending);
@@ -511,7 +514,7 @@ var Hudson = function() {
         }
       };
       setTimeout(waitUntilJobDetailIsGathered, 100);
-    }, viewName);
+    });
   };
   
   var getProgressFromExecutable = function(job, jobDetail) {
@@ -620,7 +623,7 @@ var Hudson = function() {
 
 var memory = Memory();
 var hudson = Hudson();
-var radar = Radar(hudson);
+var radar = Radar(hudson, memory);
 var prey = Prey(radar);
 var territory = Territory(memory, hudson);
 var hawk = Hawk(hudson, prey, territory);
