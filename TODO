@@ -18,24 +18,19 @@ Minor items yet to do:
 - Show svn user name that checked-in in exploded popup
 - Show svn user name from upstream builds in downstream failure
 - Better error handling for Hudson going down (or a failed AJAX call)
-- Provide a comment on build detail screen that is persisted like status
 - Provide special notification when Hudson is unavailable  (Do we empty the screen and display a message?  Do we grey out previous status?)
 - Investigate more browser combinations (esp. IEs)
 - Provide better error messages when missing Settings data is needed
-- Use jQuery ThemeBuilder stuff to build a better theme for dialog box
 
 To consider:
 - Visible indicator for time broken? Time broken since first failure?
-- Visible indicator for time left building?
-- Consider doubling size when a build breaks after someone marks on as Being Fixed
+- Consider doubling size when a build breaks after someone marks one as Being Fixed
+- Consider halfing size when a build marks one as Being Fixed
 - Consider script to strip out JS and run unit tests on HudsonHawk
 - Better hiding/encryption of passwords to Hudson.  Maybe a "ask when needed" popup instead.
 - Provide special notification when all is well (Text?  Big thumbs up?)
-- Showing in progress green builds
-- Shrinking "Build: Fixed" jobs
 - Consider "scrolling" solution if number of builds spans the whole screen
-- Put a meta refresh on the page for every hour or so (to hide any memory leaks with jQueryUI)
-- Add a re-build button (or should they be required to look at the build?) 
+- Provide a comment on build detail screen that is persisted like status
 
 
 IMPLEMENTED:
