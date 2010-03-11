@@ -11,7 +11,6 @@ Major items yet to do:
 Minor items yet to do:
 - Remove buttons on exploded alert popup
 - Create a bottom bar that includes last update time, current server and view and Settings button (which floats over any builds)
-- Make buttons disappear that are no longer relevant (e.g. 'Status: Fixed' if build is already Fixed)
 - Add a revert to original status button
 - Provide a visual indicator of the change description actions (so we can see when the flicker state *does* get set....)
 - Implement retry mechanism for failed status changes
@@ -66,5 +65,6 @@ Items
 - Visible indicator for number of consecutive broken builds
 - Make View in Hudson button close popup
 - Make bar with project info like a progress bar indicating time remaining (rather than blinking)
+- Make buttons disappear that are no longer relevant (e.g. 'Status: Fixed' if build is already Fixed)
 
 

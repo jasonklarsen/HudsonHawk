@@ -179,14 +179,15 @@ var Radar = function(hudson, memory) {
                             fxn(); }, 3000);
   }
   
-  var describeAndMark = function(listing, description, newClass) {
-    hudson.changeDescription(listing.name, listing.buildNumber, description);
+  var describeAndMark = function(listing, description, username, newClass) {
+    hudson.changeDescription(listing.name, listing.buildNumber, description + (username ? " by " + username : ""));
     removeAllClasses(listing, newClass);
   };
   
   var removeAllClasses = function(listing, newClass) {
     $("#" + listing.name).removeClass("broken failed unknown aborted passed flicker fixed").addClass(newClass);
     $("#" + listing.name + "--detail").removeClass("broken failed unknown aborted passed flicker fixed").addClass(newClass);  
+    listing.state = newClass;
   }
   
   var explodeDetail = function(listing, closeAfter, andThen) {
@@ -197,11 +198,16 @@ var Radar = function(hudson, memory) {
     currentlyExplodedView = true;
     $("#jobs").hide('puff', {}, 1000);
     var username = memory.read('HudsonHawk.userName');
+    var buttons = { 'View In Hudson': function() {  $(this).dialog("close"); window.open(listing.url); } };
+    if (listing.state != 'fixed') {
+      buttons['Status: Fixed'] = function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed', username, 'fixed'); };
+    } 
+    if (listing.state != 'flicker') {
+      buttons['Status: Flicker'] = function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Flicker', username, 'flicker'); };
+    }
+    
     $("#" + listing.name + '--detail').dialog({ 
-      buttons: { 'Status: Fixed': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed' + (username ? " by " + username : ""), 'fixed'); },
-                 'Status: Flicker': function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Flicker' + (username ? " by " + username : ""), 'flicker'); },
-                 'View In Hudson': function() {  $(this).dialog("close"); window.open(listing.url); }
-               },
+      buttons: buttons,
       hide: "scale",
       width: 'auto',
       height: 'auto',
@@ -595,7 +601,7 @@ var Hudson = function() {
     } else {
       var change = descriptionQueue.shift();
       var changeSrc = hudsonUrl + '/job/' + change.job + '/' + change.num + '/submitDescription?Submit=Submit&description=' + encodeURI(change.desc) + '&json=' + $.param({ description: change.desc });
-      return continueTo(iframe, changeSrc, function() { processDescriptionQueueWith(iframe); descriptionConfirmQueue.push(change); });
+      return continueTo(iframe, changeSrc, function() { processDescriptionQueueWith(iframe); });
     }
   };
   
