@@ -36,11 +36,13 @@
   </style>
 </head>
 <body class="notready">
+
 <div id="jobs">
 <div id="settings"><button type="button">Settings</button></div>
 </div>
 <div id="details" class="details"></div>
 <div id="popup" style="display: none"></div>
+
 <script src="http://www.google.com/jsapi"></script>
 <script>google.load("jquery", "1.4.2"); google.load("jqueryui", "1.7.2");</script>
 <script src="http://jquery-json.googlecode.com/files/jquery.json-2.2.min.js"></script>
@@ -68,7 +70,7 @@ var Hawk = function(hudson, prey, territory) {
   };
   
   var setupRefresh = function() {
-    setTimeout(function() { location.reload(true); }, 3600000); // 1 hour
+    setTimeout(function() { location.reload(true); }, 60 * 60 * 1000); // 1 hour
   };
   
   var loadInto = function(prey) {
@@ -92,7 +94,6 @@ var Prey = function(radar) {
     var fromDescription = function() {
       return description.indexOf('Build: Flicker') === 0 ? "flicker" : (description.indexOf('Build: Fixed') === 0 ? "fixed" : null);
     };  
-    
     return fromDescription() || fromColor() || 'unknown';
   };
   
@@ -245,11 +246,17 @@ var Radar = function(hudson) {
     $("#" + listing.name + "--progress1").remove();
     $("#" + listing.name + "--progress2").remove();
     
-    $("#" + listing.name)
-       .append("<div id='" + listing.name + "--progress1' class='" + listing.state + "' style='z-index: -1; width: " + (listing.progress) + "%; height: 100%; position: absolute; left: 0; top: 0;'>&nbsp;</div>")
-       .append("<div id='" + listing.name + "--progress2' class='" + listing.state + "' style='z-index: -1; width: " + (100 - listing.progress) + "%; height: 100%; position: absolute; right: 0; top: 0;'>&nbsp;</div>")
-       .removeClass(listing.state);;
-    $("#" + listing.name + "--progress1").fadeTo(0, 0.5);
+    if (listing.progress >= 99) {
+      fade_highlight(listing);
+    } else if (listing.progress < 1) {
+      // nothing for now....
+    } else {
+      $("#" + listing.name)
+         .append("<div id='" + listing.name + "--progress1' class='" + listing.state + "' style='z-index: -1; width: " + (listing.progress) + "%; height: 100%; position: absolute; left: 0; top: 0;'>&nbsp;</div>")
+         .append("<div id='" + listing.name + "--progress2' class='" + listing.state + "' style='z-index: -1; width: " + (100 - listing.progress) + "%; height: 100%; position: absolute; right: 0; top: 0;'>&nbsp;</div>")
+         .removeClass(listing.state);;
+      $("#" + listing.name + "--progress1").fadeTo(0, 0.5);
+    }
   };
   
   var fade_highlight = function(listing) {
@@ -257,18 +264,17 @@ var Radar = function(hudson) {
     var elem = function() { return (itemWhenInitiallyCalled === $("#" + listing.name).get(0)) ? $(itemWhenInitiallyCalled) : $('objectThatDoesntExist'); }
     var fadeOut = function() {
       elem().fadeTo(2000, 0.3, function() {
-        setTimeout(fadeIn, 4000);
+        setTimeout(fadeIn, 2000);
       });
     };
     var fadeIn = function(item) {
       elem().fadeTo(2000, 1, function() {
-        setTimeout(fadeOut, 2000);
+        setTimeout(fadeOut, 1000);
       });
     };
     fadeOut();
   };
   
-  // Using jQuery.animate() consumes a whole processor since it runs every 13 ms switching colors.  Above highlight should be ~60% less processing.... 
   var orig_highlight = function(listing) {
     $("#" + listing.name).effect("pulsate", { times: 10000 }, 5000);
   };
@@ -312,7 +318,7 @@ var Radar = function(hudson) {
 };
 
 /**  Storage utils (via Cookies or HTML5 storage if supported) */
-var Memory = (function() {
+var Memory = function() {
   var cookieStorage = {
     write: function(name, value) {
       var date = new Date();
@@ -344,7 +350,7 @@ var Memory = (function() {
     erase: function(name) { storage.write(name, ""); },
     read: storage.read
   }
-})();
+};
 
 /** Configuration options */
 var Territory = function(memory, hudson) {
@@ -449,7 +455,7 @@ var Territory = function(memory, hudson) {
 };
 
 /** Hudson wrapper */
-var Hudson = (function() {  
+var Hudson = function() {  
   var hudsonUrl;
   var username;
   var password;
@@ -489,12 +495,7 @@ var Hudson = (function() {
           if (jobDetail.lastBuild.building) {
             count++;
             callHudsonFor(1, function(slaveDetail) {
-              job.inProgress = true;
-              $.each(slaveDetail.executors, function() {
-                if (this.currentExecutable && this.currentExecutable.number === jobDetail.lastBuild.number) {
-                  job.progress = this.progress;
-                }
-              });
+              updateJobProgress(job, slaveDetail, jobDetail);
               count--;
             }, 'computer/' + jobDetail.lastBuild.builtOn + '/');
           }
@@ -513,6 +514,36 @@ var Hudson = (function() {
     }, viewName);
   };
   
+  var getProgressFromExecutable = function(job, jobDetail) {
+    return function() {
+      if (this.currentExecutable && this.currentExecutable.number === jobDetail.lastBuild.number) {
+        job.progress = this.progress;
+      }
+    };
+  };
+  
+  var updateJobProgress = function(job, slaveDetail, jobDetail) {
+    job.inProgress = true;
+    $.each(slaveDetail.executors, getProgressFromExecutable(job, jobDetail));
+    $.each(slaveDetail.oneOffExecutors, getProgressFromExecutable(job, jobDetail));
+    if (!job.progress || job.progress < 1) {
+      var durationComplete = deriveProgressFrom(jobDetail);
+      if (durationComplete > 0 && durationComplete < 1) {
+        job.progress = durationComplete * 100;
+      }
+    }
+  };
+  
+  var deriveProgressFrom = function(jobDetail) {
+    var durationTotal = 0;
+    $(jobDetail.builds).each(function() {
+      durationTotal = durationTotal + this.duration
+    });
+    var averageDuration = durationTotal / jobDetail.builds.length;
+    var currentDuration = new Date().getTime() - jobDetail.lastBuild.timestamp;
+    return currentDuration / averageDuration;
+  }
+  
   var byTimestampAscending = function(a, b) { 
     var aStamp = a.lastCompletedBuild ? a.lastCompletedBuild : 0; 
     var bStamp = b.lastCompletedBuild ? b.lastCompletedBuild : 0; 
@@ -527,7 +558,6 @@ var Hudson = (function() {
   };
 
   var descriptionQueue = [];
-  //var descriptionConfirmQueue = [];
   var changeDescription = function(jobName, buildNumber, newDescription) {
     descriptionQueue.push({ job: jobName, num: buildNumber, desc: newDescription });
     
@@ -586,12 +616,12 @@ var Hudson = (function() {
     redirectTo: redirectTo,
     changeDescription: changeDescription
   };
-})();
+};
 
-var hudson = Hudson;
+var memory = Memory();
+var hudson = Hudson();
 var radar = Radar(hudson);
 var prey = Prey(radar);
-var memory = Memory;
 var territory = Territory(memory, hudson);
 var hawk = Hawk(hudson, prey, territory);
 
