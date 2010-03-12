@@ -62,11 +62,11 @@ var Hawk = function(hudson, prey, territory) {
     var flightPlan = function() { 
       var xhr = hudson.failedJobsFor(view, function(jobs) {
         prey.target(jobs); 
-        setTimeout(flightPlan, 10000); 
+        setTimeout(flightPlan, 20000); 
       });
 //      setTimeout(function() { xhr.abort(); flightPlan(); }, 300000);
     };
-    setTimeout(flightPlan, 10000);  
+    setTimeout(flightPlan, 20000);  
   };
   
   var setupRefresh = function() {
