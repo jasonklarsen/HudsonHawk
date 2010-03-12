@@ -506,7 +506,7 @@ var Hudson = function() {
         callHudsonFor(viewName + "job/" + job.name + "/", 1, function(jobDetail) { 
           job.lastCompletedBuild = jobDetail.lastCompletedBuild; 
           job.lastStableBuild = jobDetail.lastStableBuild;
-          if (jobDetail.lastBuild.building) {
+          if (jobDetail.lastBuild && jobDetail.lastBuild.building) {
             count++;
             callHudsonFor('computer/' + jobDetail.lastBuild.builtOn + '/', 1, function(slaveDetail) {
               updateJobProgress(job, slaveDetail, jobDetail);
