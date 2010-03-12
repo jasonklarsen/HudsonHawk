@@ -259,6 +259,7 @@ var Radar = function(hudson, memory) {
     $("#" + listing.name + "--progress2").remove();
     
     if (listing.progress >= 99) {
+      $("#" + listing.name).addClass(listing.state);
       fade_highlight(listing);
     } else if (listing.progress < 1) {
       // nothing for now....
@@ -266,7 +267,7 @@ var Radar = function(hudson, memory) {
       $("#" + listing.name)
          .append("<div id='" + listing.name + "--progress1' class='" + listing.state + "' style='z-index: -1; width: " + (listing.progress) + "%; height: 100%; position: absolute; left: 0; top: 0;'>&nbsp;</div>")
          .append("<div id='" + listing.name + "--progress2' class='" + listing.state + "' style='z-index: -1; width: " + (100 - listing.progress) + "%; height: 100%; position: absolute; right: 0; top: 0;'>&nbsp;</div>")
-         .removeClass(listing.state);;
+         .removeClass(listing.state);
       $("#" + listing.name + "--progress1").fadeTo(0, 0.5);
     }
   };
