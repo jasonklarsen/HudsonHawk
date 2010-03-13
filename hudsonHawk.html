@@ -201,7 +201,7 @@ var Radar = function(hudson, memory) {
       return;
     }
     currentlyExplodedView = true;
-    $("#jobs").hide('puff', {}, 1000);
+    //$("#jobs").hide('puff', {}, 1000);
     var username = memory.read('HudsonHawk.userName');
     var buttons = { 'View In Hudson': function() {  $(this).dialog("close"); window.open(listing.url); } };
     if (listing.state != 'fixed') {
@@ -229,7 +229,7 @@ var Radar = function(hudson, memory) {
   var add = function(listing) {
     create(listing);
     explodeDetail(listing, 5000, function() {
-      $("#jobs").show("blind", { direction: "vertical" }, 1100);
+      //$("#jobs").show("blind", { direction: "vertical" }, 1100);
       setTimeout(function() { $("#" + listing.name).show("blind", { direction: "vertical" }, 2000); }, 1100);
     });
   };
@@ -243,7 +243,7 @@ var Radar = function(hudson, memory) {
     $('#jobs').prepend('<div id="' + listing.name + '" class="' + listing.state + ' job" style="display: none"><span>' + listing.name + ' <span class="count">(' + listing.numberSinceFailure + ')</span></span></div>');
     updatePopupDetail(listing);    
     $("#" + listing.name)
-      .click(function() { explodeDetail(listing, 0, function() { $("#jobs").show("blind", { direction: "vertical" }, 2000); }); });
+      .click(function() { explodeDetail(listing, 0, function() { /*$("#jobs").show("blind", { direction: "vertical" }, 2000); }); */ });
   };
   
   var updatePopupDetail = function(listing) {
