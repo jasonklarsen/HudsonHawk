@@ -502,6 +502,7 @@ var Hudson = function() {
     timeoutIdent = setTimeout(confirmWasCompleted(toDo), 30000);
   };
   
+  // This confirmation is since Hudson will sometimes drop requests, and we cannot abort or timeout $.ajax() jsonp runs...
   var confirmWasCompleted = function(toDo) {
     return function() {
       $.inArray(toDo, ToDoList);

@@ -1,5 +1,4 @@
 Workplan:
-- Resiliency to a JSON request
 - End to end testing scenarios:
   - Add refresh timeout to settings
   - Refactor settings to be a single JSON setting 
@@ -84,5 +83,6 @@ Items
 - Make View in Hudson button close popup
 - Make bar with project info like a progress bar indicating time remaining (rather than blinking)
 - Make buttons disappear that are no longer relevant (e.g. 'Status: Fixed' if build is already Fixed)
+- Resiliency to a JSON request - We now retry after 45 seconds
 
 
