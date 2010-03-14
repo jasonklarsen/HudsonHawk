@@ -55,9 +55,9 @@
 var Hawk = function(hudson, prey, territory) {
   
   var awaken = function() {
-    territory.recallViewAndThen(function(view) {
-      hudson.failedJobsFor(view, loadInto(prey)); 
-      beginSurveillanceOver(view);
+    territory.recallAndThen(function(territory) {
+      hudson.failedJobsFor(territory.viewName, loadInto(prey)); 
+      beginSurveillanceOver(territory.viewName);
     });
     setupRefresh();
   };
@@ -318,7 +318,7 @@ var Radar = function(hudson, memory) {
   
   var enable = function() {
     $("#settings").click(function() { 
-      territory.openSettingsAndThen(function(view) {
+      territory.openSettingsAndThen(function(territory) {
         location.reload(true);
       });
     });
@@ -370,11 +370,33 @@ var Memory = function() {
 
 /** Configuration options */
 var Territory = function(memory, hudson) {
-  var serverUrl = function() { return memory.read('HudsonHawk.serverUrl') };
-  var viewName = function() { return memory.read('HudsonHawk.viewName') };
-  var userName = function() { return memory.read('HudsonHawk.userName') };
-  var password = function() { return memory.read('HudsonHawk.password') };
+
+  var parseOldDetails = function() {
+    return {
+      serverUrl: memory.read('HudsonHawk.serverUrl'),
+      viewName: memory.read('HudsonHawk.viewName'),
+      userName: memory.read('HudsonHawk.userName'),
+      password: memory.read('HudsonHawk.password')
+    };
+  };
   
+  var details = function() {
+    var newDetails = $.parseJSON(memory.read('HudsonHawk'));
+    var oldDetails = parseOldDetails();
+    if (oldDetails.viewName && oldDetails.viewName !== "") {
+      memory.write('HudsonHawk', $.toJSON(oldDetails));
+      memory.erase('HudsonHawk.serverUrl');
+      memory.erase('HudsonHawk.viewName');
+      memory.erase('HudsonHawk.userName');
+      memory.erase('HudsonHawk.password');
+      return oldDetails;
+    } else if (newDetails) {
+      return newDetails;
+    } else {
+      return { serverUrl: "", viewName: "", userName: "", password: "" };    
+    }
+  };
+
   var popupRequestForInfo = function(title, formBuilder, okCallback) {
     var popup = $('#popup');
     popup.empty();
@@ -394,32 +416,36 @@ var Territory = function(memory, hudson) {
   };
   
   var openSettingsIfNotFilledIn = function(callbackOnOk) {
-    if (serverUrl() && viewName() && userName()) {
-      hudson.redirectTo(serverUrl(), userName(), password());
-      callbackOnOk(viewName());
+    if (details().serverUrl && details().viewName && details().userName) {
+      hudson.loadNew(details());
+      callbackOnOk(details());
     } else {
       openSettings(callbackOnOk);
     }
   };
   
   var openSettings = function(callbackOnOk) {
-    if (serverUrl()) {
-      hudson.redirectTo(serverUrl(), userName(), password());
+    if (details().serverUrl) {
+      hudson.loadNew(details());
       refreshViewsOnPopup();
       refreshUsersOnPopup();
     }
     
     popupRequestForInfo("Settings", settingsForm, function() {
       var newUrl = $('#urlOption').val(); 
-      memory.write('HudsonHawk.serverUrl', newUrl);        
       var newViewName = $('#viewOption').val(); 
-      memory.write('HudsonHawk.viewName', newViewName);
       var newUsername = $('#userOption').val();
-      memory.write('HudsonHawk.userName', newUsername);  
       var newPassword = $('#passwordOption').val();
-      memory.write('HudsonHawk.password', newPassword);      
-      hudson.redirectTo(newUrl, newUsername, newPassword);
-      callbackOnOk(newViewName);
+      
+      memory.write('HudsonHawk', $.toJSON({
+        serverUrl: newUrl,
+        viewName: newViewName,
+        userName: newUsername,
+        password: newPassword
+      }));
+      
+      hudson.loadNew(details());
+      callbackOnOk(details());
     });
   };
   
@@ -436,7 +462,7 @@ var Territory = function(memory, hudson) {
     $('#viewOption').replaceWith("<i id='viewOption'>Refreshing views from Hudson...</i>");
     hudson.viewsFor(function(views) {
       generateSelect("viewOption", $(views).map(function() { return this.name; }));
-      $('#viewOption').val(memory.read('HudsonHawk.viewName'));
+      $('#viewOption').val(details().viewName);
     });
   }; 
   
@@ -444,20 +470,20 @@ var Territory = function(memory, hudson) {
     $('#userOption').replaceWith("<i id='userOption'>Refreshing users from Hudson...</i>");
     hudson.usersFor(function(users) {
       generateSelect("userOption", $(users).map(function() { return this.user.fullName; }));
-      $('#userOption').val(memory.read('HudsonHawk.userName'));
+      $('#userOption').val(details().userName);
     });
   };
   
   var settingsForm = function(popup) {
     var table = "<table><tbody>" 
-                + row("Hudson URL:", "<input id='urlOption' class='url' value='" + (serverUrl() || "http://") + "'></input>") 
-                + row("View:", "<i id='viewOption'>" + (viewName() || "<none>") + "</i>")
-                + row("User:", "<i id='userOption'>" + (userName() || "<none>") + "</i>")
-                + row("Password:", "<input id='passwordOption' type='password' value='" + (password() || "") + "'></input>") 
+                + row("Hudson URL:", "<input id='urlOption' class='url' value='" + (details().serverUrl || "http://") + "'></input>") 
+                + row("View:", "<i id='viewOption'>" + (details().viewName || "<none>") + "</i>")
+                + row("User:", "<i id='userOption'>" + (details().userName || "<none>") + "</i>")
+                + row("Password:", "<input id='passwordOption' type='password' value='" + (details().password || "") + "'></input>") 
                 + "</tbody></table>";
     popup.append(table);
     $('#urlOption').change(function() { 
-      hudson.redirectTo($('#urlOption').val(), userName(), password());
+      hudson.loadNew({ serverUrl: $('#urlOption').val(), userName: "", viewName: "", password: "" });
       refreshViewsOnPopup(); 
       refreshUsersOnPopup();
     });
@@ -467,7 +493,7 @@ var Territory = function(memory, hudson) {
     return "<tr><td>" + prompt + "</td><td>" + formElement + "</td></tr>";
   };
   
-  return { recallViewAndThen: openSettingsIfNotFilledIn, openSettingsAndThen: openSettings };
+  return { recallAndThen: openSettingsIfNotFilledIn, openSettingsAndThen: openSettings };
 };
 
 /** Hudson wrapper */
@@ -588,11 +614,11 @@ var Hudson = function() {
     return aStamp - bStamp; 
   }
   
-  var redirectTo = function(dirtyUrl, newUsername, newPassword) {
-    var cleanerUrl = dirtyUrl.indexOf('http') > -1 ? dirtyUrl : "http://" + dirtyUrl;
+  var loadNew = function(territory) {
+    var cleanerUrl = territory.serverUrl.indexOf('http') > -1 ? territory.serverUrl : "http://" + territory.serverUrl;
     hudsonUrl = cleanerUrl.charAt(cleanerUrl.length - 1) === '/' ? cleanerUrl : cleanerUrl + "/";
-    username = newUsername;
-    password = newPassword;
+    username = territory.userName;
+    password = territory.password;
   };
 
   var descriptionQueue = [];
@@ -651,7 +677,7 @@ var Hudson = function() {
     viewsFor: viewsFor,
     failedJobsFor: failedJobsFor,
     usersFor: usersFor,
-    redirectTo: redirectTo,
+    loadNew: loadNew,
     changeDescription: changeDescription
   };
 };
