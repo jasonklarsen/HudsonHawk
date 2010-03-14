@@ -1,3 +1,18 @@
+Workplan:
+- Resiliency to a JSON request
+- End to end testing scenarios:
+  - Add refresh timeout to settings
+  - Refactor settings to be a single JSON setting 
+  - Add temporary migration from old to new settings
+  - Set up json import of settings in optional http param
+  - Find/build MrBelvedere, a Hudson clone
+    - Responds to jobs
+    - Responds to individual jobs
+    - Responds to server status
+    - (optional) Responds to users/views
+  - Create scenarios...
+
+
 Bugs:
 - When using as a side bar in Firefox, View in Hudson button appears in new window
 
@@ -20,6 +35,8 @@ Minor items yet to do:
 - Provide special notification when Hudson is unavailable  (Do we empty the screen and display a message?  Do we grey out previous status?)
 - Investigate more browser combinations (esp. IEs)
 - Provide better error messages when missing Settings data is needed
+- Remove user/pass if you don't need to login (and update change description) - Maybe check the Hudson config?
+- Info bar showing in process requests
 
 To consider:
 - Visible indicator for time broken? Time broken since first failure?
@@ -30,6 +47,7 @@ To consider:
 - Provide special notification when all is well (Text?  Big thumbs up?)
 - Consider "scrolling" solution if number of builds spans the whole screen
 - Provide a comment on build detail screen that is persisted like status
+- Animation effects (shading/removing) for background when popup
 
 
 IMPLEMENTED:

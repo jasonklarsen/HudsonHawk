@@ -64,11 +64,10 @@ var Hawk = function(hudson, prey, territory) {
   
   var beginSurveillanceOver = function(view) {
     var flightPlan = function() { 
-      var xhr = hudson.failedJobsFor(view, function(jobs) {
+      hudson.failedJobsFor(view, function(jobs) {
         prey.target(jobs); 
         setTimeout(flightPlan, 40000); 
       });
-//      setTimeout(function() { xhr.abort(); flightPlan(); }, 300000);
     };
     setTimeout(flightPlan, 40000);  
   };
@@ -110,7 +109,7 @@ var Prey = function(radar) {
              progress:           job.progress,
              description:        newDescription,
              numberSinceFailure: job.lastCompletedBuild && job.lastStableBuild ? parseInt(job.lastCompletedBuild.number) - parseInt(job.lastStableBuild.number) : "??",
-             buildNumber:        job.lastCompletedBuild ? job.lastCompletedBuild.number: null };
+             buildNumber:        job.lastCompletedBuild ? job.lastCompletedBuild.number : null };
   };
  
   var Listings = function(jobs) {
@@ -179,7 +178,7 @@ var Radar = function(hudson, memory) {
    
   var removeAnd = function(listing, fxn) {
     $("#" + listing.name).hide("blind", { direction: "vertical" }, 3000);
-    setTimeout(function() { $("#" + listing.name).dialog('destroy').remove(); 
+    setTimeout(function() { $("#" + listing.name).remove(); 
                             $("#" + listing.name + "--detail").dialog('destroy').remove(); 
                             fxn(); }, 3000);
   }
@@ -243,7 +242,7 @@ var Radar = function(hudson, memory) {
     $('#jobs').prepend('<div id="' + listing.name + '" class="' + listing.state + ' job" style="display: none"><span>' + listing.name + ' <span class="count">(' + listing.numberSinceFailure + ')</span></span></div>');
     updatePopupDetail(listing);    
     $("#" + listing.name)
-      .click(function() { explodeDetail(listing, 0, function() { /*$("#jobs").show("blind", { direction: "vertical" }, 2000); }); */ });
+      .click(function() { explodeDetail(listing, 0, function() { /*$("#jobs").show("blind", { direction: "vertical" }, 2000); */ }); });
   };
   
   var updatePopupDetail = function(listing) {
@@ -477,32 +476,51 @@ var Hudson = function() {
   var username;
   var password;
   
+  var ToDoList = [];
+  var ToDo = function(failureRetry) {
+    return {
+      failureRetry: failureRetry,
+    };
+  };
+  
   var callHudsonFor = function(directory, depth, callback) {
+    var timeoutIdent;
     var requestUrl = hudsonUrl + directory;
-    return $.ajax({
+    var toDo = ToDo(function() { callHudsonFor(directory, depth, callback); });
+    $.ajax({
       url: requestUrl + 'api/json',
       dataType: 'jsonp',
       jsonp: 'jsonp',
       data: 'depth=' + depth,
-      timeout: 10000,
-      success: function(hudson) { hudson.__url = requestUrl; callback(hudson); },
-      error: function(request, status, error) {
-        alert("Error: " + requestUrl);
+      success: function(hudson) { 
+        clearTimeout(timeoutIdent);
+        ToDoList = ToDoList.filter(function() { return this !== toDo; });
+        hudson.__url = requestUrl; 
+        callback(hudson); 
       }
-    });    
+    });
+    timeoutIdent = setTimeout(confirmWasCompleted(toDo), 30000);
+  };
+  
+  var confirmWasCompleted = function(toDo) {
+    return function() {
+      $.inArray(toDo, ToDoList);
+      ToDoList = ToDoList.filter(function() { return this !== toDo; });
+      toDo.failureRetry();
+    };
   };
   
   var viewsFor = function(callback) {
-    return callHudsonFor("", 0, function(hudson) { callback(hudson.views); });
+    callHudsonFor("", 0, function(hudson) { callback(hudson.views); });
   };
 
   var usersFor = function(callback) {
-    return callHudsonFor("people/", 0, function(hudson) { callback(hudson.users); });
+    callHudsonFor("people/", 0, function(hudson) { callback(hudson.users); });
   };
 
   var failedJobsFor = function(view, callback) {
     var viewName = view ? "view/" + view + "/" : '';
-    return callHudsonFor(viewName, 0, function(hudson) { 
+    callHudsonFor(viewName, 0, function(hudson) { 
       var failedJobs = $(hudson.jobs).filter(function() { return this.color.indexOf('blue') !== 0; });
       
       var count = failedJobs.length; 
@@ -564,8 +582,8 @@ var Hudson = function() {
   }
   
   var byTimestampAscending = function(a, b) { 
-    var aStamp = a.lastCompletedBuild ? a.lastCompletedBuild : 0; 
-    var bStamp = b.lastCompletedBuild ? b.lastCompletedBuild : 0; 
+    var aStamp = a.lastCompletedBuild ? a.lastCompletedBuild.timestamp : 0; 
+    var bStamp = b.lastCompletedBuild ? b.lastCompletedBuild.timestamp : 0; 
     return aStamp - bStamp; 
   }
   
