@@ -218,7 +218,7 @@ var Radar = function(hudson, memory) {
       modal: true,
       resizable: false,
       closeOnEscape: true,
-      close: function() { andThen(); currentlyExplodedView = false; }
+      close: function() { currentlyExplodedView = false; andThen(); }
     });
     if (closeAfter > 0) {
       setTimeout(function() { $("#" + listing.name + '--detail').dialog('close'); }, closeAfter);
@@ -229,7 +229,9 @@ var Radar = function(hudson, memory) {
     create(listing);
     explodeDetail(listing, 5000, function() {
       //$("#jobs").show("blind", { direction: "vertical" }, 1100);
-      setTimeout(function() { $("#" + listing.name).show("blind", { direction: "vertical" }, 2000); }, 1100);
+      //setTimeout(function() { 
+        $("#" + listing.name).show("blind", { direction: "vertical" }, 2000); 
+      //}, 1100);
     });
   };
   
