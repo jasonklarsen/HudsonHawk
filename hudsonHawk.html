@@ -251,6 +251,9 @@ var Radar = function(hudson, memory) {
   };
   
   var updatePopupDetail = function(listing) {
+    if (!$("#" + listing.name).is(':visible')) {
+      $("#" + listing.name).show();
+    }
     $("#" + listing.name + '--detail').remove();
     $('#details').prepend('<div id="' + listing.name + '--detail" class="' + listing.state + ' jobdetail" style="display: none">' + listing.name 
                           + '<div class="count">Failed for last ' + listing.numberSinceFailure + ' builds'
