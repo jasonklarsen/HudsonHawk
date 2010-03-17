@@ -201,7 +201,7 @@ var Radar = function(hudson, memory) {
     }
     currentlyExplodedView = true;
     //$("#jobs").hide('puff', {}, 1000);
-    var username = memory.read('HudsonHawk.userName');
+    var username = $.parseJSON(memory.read('HudsonHawk'))[0].settings.userName;
     var buttons = { 'View In Hudson': function() {  $(this).dialog("close"); window.open(listing.url); } };
     if (listing.state != 'fixed') {
       buttons['Status: Fixed'] = function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed', username, 'fixed'); };
@@ -369,21 +369,31 @@ var Territory = function(memory, hudson) {
     };
   };
   
-  var details = function() {
+  var fullDetails = function() {
+    var details;
     var newDetails = $.parseJSON(memory.read('HudsonHawk'));
     var oldDetails = parseOldDetails();
     if (oldDetails.viewName && oldDetails.viewName !== "") {
-      memory.write('HudsonHawk', $.toJSON(oldDetails));
       memory.erase('HudsonHawk.serverUrl');
       memory.erase('HudsonHawk.viewName');
       memory.erase('HudsonHawk.userName');
       memory.erase('HudsonHawk.password');
-      return oldDetails;
+      details = oldDetails;
     } else if (newDetails) {
-      return newDetails;
+      details = newDetails;
     } else {
-      return { serverUrl: "", viewName: "", userName: "", password: "" };    
+      details = { serverUrl: "", viewName: "", userName: "", password: "" };    
     }
+    if (details[0] && details[0].name) {
+      return details;
+    }
+    var newNewDetails = [{ name: "Hudson", type: "hudson", settings: details }];
+    memory.write('HudsonHawk', $.toJSON(newNewDetails));
+    return newNewDetails;
+  };
+  
+  var details = function() {
+    return fullDetails()[0].settings;
   };
 
   var popupRequestForInfo = function(title, formBuilder, okCallback) {
@@ -426,12 +436,12 @@ var Territory = function(memory, hudson) {
       var newUsername = $('#userOption').val();
       var newPassword = $('#passwordOption').val();
       
-      memory.write('HudsonHawk', $.toJSON({
+      memory.write('HudsonHawk', $.toJSON([{ name: "Hudson", type: "hudson", settings: {
         serverUrl: newUrl,
         viewName: newViewName,
         userName: newUsername,
         password: newPassword
-      }));
+      }}]));
       
       hudson.loadNew(details());
       callbackOnOk(details());
