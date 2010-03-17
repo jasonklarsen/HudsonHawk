@@ -57,19 +57,19 @@ var Hawk = function(hudson, prey, territory) {
   var awaken = function() {
     territory.recallAndThen(function(territory) {
       hudson.failedJobsFor(territory.viewName, loadInto(prey)); 
-      beginSurveillanceOver(territory.viewName);
+      beginSurveillanceOver(territory);
     });
     setupRefresh();
   };
   
-  var beginSurveillanceOver = function(view) {
+  var beginSurveillanceOver = function(territory) {
     var flightPlan = function() { 
-      hudson.failedJobsFor(view, function(jobs) {
+      hudson.failedJobsFor(territory.viewName, function(jobs) {
         prey.target(jobs); 
-        setTimeout(flightPlan, 40000); 
+        setTimeout(flightPlan, territory.refreshSeconds * 1000); 
       });
     };
-    setTimeout(flightPlan, 40000);  
+    setTimeout(flightPlan, territory.refreshSeconds * 1000);  
   };
   
   var setupRefresh = function() {
@@ -365,7 +365,9 @@ var Territory = function(memory, hudson) {
       serverUrl: memory.read('HudsonHawk.serverUrl'),
       viewName: memory.read('HudsonHawk.viewName'),
       userName: memory.read('HudsonHawk.userName'),
-      password: memory.read('HudsonHawk.password')
+      password: memory.read('HudsonHawk.password'),
+      refreshSeconds: 30, 
+      giveUpAndRetrySeconds: 30
     };
   };
   
@@ -382,11 +384,14 @@ var Territory = function(memory, hudson) {
     } else if (newDetails) {
       details = newDetails;
     } else {
-      details = { serverUrl: "", viewName: "", userName: "", password: "" };    
+      details = { serverUrl: "", viewName: "", userName: "", password: "", refreshSeconds: 30, giveUpAndRetrySeconds: 45 };    
     }
     if (details[0] && details[0].name) {
       return details;
     }
+    details.refreshSeconds = 30;
+    
+    details.giveUpAndRetrySeconds = 30;
     var newNewDetails = [{ name: "Hudson", type: "hudson", settings: details }];
     memory.write('HudsonHawk', $.toJSON(newNewDetails));
     return newNewDetails;
@@ -435,12 +440,16 @@ var Territory = function(memory, hudson) {
       var newViewName = $('#viewOption').val(); 
       var newUsername = $('#userOption').val();
       var newPassword = $('#passwordOption').val();
+      var newRefresh = $('#refreshOption').val();
+      var newRetryAfter = $('#retryAfterOption').val();
       
       memory.write('HudsonHawk', $.toJSON([{ name: "Hudson", type: "hudson", settings: {
         serverUrl: newUrl,
         viewName: newViewName,
         userName: newUsername,
-        password: newPassword
+        password: newPassword,
+        refreshSeconds: parseInt(newRefresh), 
+        giveUpAndRetrySeconds: parseInt(newRetryAfter)
       }}]));
       
       hudson.loadNew(details());
@@ -476,9 +485,11 @@ var Territory = function(memory, hudson) {
   var settingsForm = function(popup) {
     var table = "<table><tbody>" 
                 + row("Hudson URL:", "<input id='urlOption' class='url' value='" + (details().serverUrl || "http://") + "'></input>") 
-                + row("View:", "<i id='viewOption'>" + (details().viewName || "<none>") + "</i>")
-                + row("User:", "<i id='userOption'>" + (details().userName || "<none>") + "</i>")
+                + row("View:", "<i id='viewOption'>" + (details().viewName || "") + "</i>")
+                + row("User:", "<i id='userOption'>" + (details().userName || "") + "</i>")
                 + row("Password:", "<input id='passwordOption' type='password' value='" + (details().password || "") + "'></input>") 
+                + row("Refresh rate (sec):", "<input id='refreshOption' value='" + (details().refreshSeconds || "30") + "'></input>")
+                + row("Retry after (sec):", "<input id='retryAfterOption' value='" + (details().giveUpAndRetrySeconds || "30") + "'></input>")
                 + "</tbody></table>";
     popup.append(table);
     $('#urlOption').change(function() { 
@@ -500,6 +511,7 @@ var Hudson = function() {
   var hudsonUrl;
   var username;
   var password;
+  var giveUpAndRetryAfter;
   
   var ToDoList = [];
   var ToDo = function(failureRetry) {
@@ -524,7 +536,7 @@ var Hudson = function() {
         callback(hudson); 
       }
     });
-    timeoutIdent = setTimeout(confirmWasCompleted(toDo), 30000);
+    timeoutIdent = setTimeout(confirmWasCompleted(toDo), giveUpAndRetryAfter * 1000);
   };
   
   // This confirmation is since Hudson will sometimes drop requests, and we cannot abort or timeout $.ajax() jsonp runs...
@@ -618,6 +630,7 @@ var Hudson = function() {
     hudsonUrl = cleanerUrl.charAt(cleanerUrl.length - 1) === '/' ? cleanerUrl : cleanerUrl + "/";
     username = territory.userName;
     password = territory.password;
+    giveUpAndRetryAfter = territory.giveUpAndRetrySeconds;
   };
 
   var descriptionQueue = [];
