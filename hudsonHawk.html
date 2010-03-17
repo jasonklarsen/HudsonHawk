@@ -287,14 +287,14 @@ var Radar = function(hudson, memory) {
     var itemWhenInitiallyCalled = $("#" + listing.name).get(0);
     var elem = function() { return (itemWhenInitiallyCalled === $("#" + listing.name).get(0)) ? $(itemWhenInitiallyCalled) : $('objectThatDoesntExist'); }
     var fadeOut = function() {
-      elem().switchClass(listing.state, 'passed', 1000, 'linear', function() {
-//      elem().fadeTo(1000, 0.5, function() {
+//      elem().switchClass(listing.state, 'passed', 1000, 'linear', function() {
+      elem().fadeTo(1000, 0.5, function() {
         setTimeout(fadeIn, 1000);
       });
     };
     var fadeIn = function(item) {
-      elem().switchClass('passed', listing.state, 1000, 'linear', function() {
-//      elem().fadeTo(1000, 1, function() {
+//      elem().switchClass('passed', listing.state, 1000, 'linear', function() {
+      elem().fadeTo(1000, 1, function() {
         setTimeout(fadeOut, 1000);
       });
     };
