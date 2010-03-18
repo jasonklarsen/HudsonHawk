@@ -1,3 +1,18 @@
+<!--
+ Copyright (C) 2010 Jason Larsen
+
+ Licensed under the Apache License, Version 2.0 (the "License");
+ you may not use this file except in compliance with the License.
+ You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+ -->
 <html>
 <head>
   <title>Hudson Hawk</title>
@@ -57,19 +72,19 @@ var Hawk = function(hudson, prey, territory) {
   var awaken = function() {
     territory.recallAndThen(function(territory) {
       hudson.failedJobsFor(territory.viewName, loadInto(prey)); 
-      beginSurveillanceOver(territory.viewName);
+      beginSurveillanceOver(territory);
     });
     setupRefresh();
   };
   
-  var beginSurveillanceOver = function(view) {
+  var beginSurveillanceOver = function(territory) {
     var flightPlan = function() { 
-      hudson.failedJobsFor(view, function(jobs) {
+      hudson.failedJobsFor(territory.viewName, function(jobs) {
         prey.target(jobs); 
-        setTimeout(flightPlan, 40000); 
+        setTimeout(flightPlan, territory.refreshSeconds * 1000); 
       });
     };
-    setTimeout(flightPlan, 40000);  
+    setTimeout(flightPlan, territory.refreshSeconds * 1000);  
   };
   
   var setupRefresh = function() {
@@ -201,7 +216,7 @@ var Radar = function(hudson, memory) {
     }
     currentlyExplodedView = true;
     //$("#jobs").hide('puff', {}, 1000);
-    var username = memory.read('HudsonHawk.userName');
+    var username = $.parseJSON(memory.read('HudsonHawk'))[0].settings.userName;
     var buttons = { 'View In Hudson': function() {  $(this).dialog("close"); window.open(listing.url); } };
     if (listing.state != 'fixed') {
       buttons['Status: Fixed'] = function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed', username, 'fixed'); };
@@ -287,38 +302,19 @@ var Radar = function(hudson, memory) {
     var itemWhenInitiallyCalled = $("#" + listing.name).get(0);
     var elem = function() { return (itemWhenInitiallyCalled === $("#" + listing.name).get(0)) ? $(itemWhenInitiallyCalled) : $('objectThatDoesntExist'); }
     var fadeOut = function() {
-      elem().fadeTo(2000, 0.3, function() {
-        setTimeout(fadeIn, 2000);
+//      elem().switchClass(listing.state, 'passed', 1000, 'linear', function() {
+      elem().fadeTo(1000, 0.5, function() {
+        setTimeout(fadeIn, 1000);
       });
     };
     var fadeIn = function(item) {
-      elem().fadeTo(2000, 1, function() {
+//      elem().switchClass('passed', listing.state, 1000, 'linear', function() {
+      elem().fadeTo(1000, 1, function() {
         setTimeout(fadeOut, 1000);
       });
     };
     fadeOut();
   };
-  
-  var orig_highlight = function(listing) {
-    $("#" + listing.name).effect("pulsate", { times: 10000 }, 5000);
-  };
-  
-  // An alternate to consider if aesthetically more pleasing than newer highlighting options
-  var alt_highlight = function(listing) {
-    var itemWhenInitiallyCalled = $("#" + listing.name).get(0);
-    var elem = function() { return (itemWhenInitiallyCalled === $("#" + listing.name).get(0)) ? $(itemWhenInitiallyCalled) : $('objectThatDoesntExist'); }
-    var fadeOut = function() {
-      elem().switchClass(listing.state, 'passed', 2500, 'linear', function() {
-        setTimeout(fadeIn, 0);
-      });
-    };
-    var fadeIn = function(item) {
-      elem().switchClass('passed', listing.state, 2500, 'linear', function() {
-        setTimeout(fadeOut, 0);
-      });
-    };
-    fadeOut();
-  }; 
   
   var changeState = function(listing) {
     removeAllClasses(listing, listing.state);
@@ -384,25 +380,40 @@ var Territory = function(memory, hudson) {
       serverUrl: memory.read('HudsonHawk.serverUrl'),
       viewName: memory.read('HudsonHawk.viewName'),
       userName: memory.read('HudsonHawk.userName'),
-      password: memory.read('HudsonHawk.password')
+      password: memory.read('HudsonHawk.password'),
+      refreshSeconds: 30, 
+      giveUpAndRetrySeconds: 30
     };
   };
   
-  var details = function() {
+  var fullDetails = function() {
+    var details;
     var newDetails = $.parseJSON(memory.read('HudsonHawk'));
     var oldDetails = parseOldDetails();
     if (oldDetails.viewName && oldDetails.viewName !== "") {
-      memory.write('HudsonHawk', $.toJSON(oldDetails));
       memory.erase('HudsonHawk.serverUrl');
       memory.erase('HudsonHawk.viewName');
       memory.erase('HudsonHawk.userName');
       memory.erase('HudsonHawk.password');
-      return oldDetails;
+      details = oldDetails;
     } else if (newDetails) {
-      return newDetails;
+      details = newDetails;
     } else {
-      return { serverUrl: "", viewName: "", userName: "", password: "" };    
+      details = { serverUrl: "", viewName: "", userName: "", password: "", refreshSeconds: 30, giveUpAndRetrySeconds: 45 };    
     }
+    if (details[0] && details[0].name) {
+      return details;
+    }
+    details.refreshSeconds = 30;
+    
+    details.giveUpAndRetrySeconds = 30;
+    var newNewDetails = [{ name: "Hudson", type: "hudson", settings: details }];
+    memory.write('HudsonHawk', $.toJSON(newNewDetails));
+    return newNewDetails;
+  };
+  
+  var details = function() {
+    return fullDetails()[0].settings;
   };
 
   var popupRequestForInfo = function(title, formBuilder, okCallback) {
@@ -444,13 +455,17 @@ var Territory = function(memory, hudson) {
       var newViewName = $('#viewOption').val(); 
       var newUsername = $('#userOption').val();
       var newPassword = $('#passwordOption').val();
+      var newRefresh = $('#refreshOption').val();
+      var newRetryAfter = $('#retryAfterOption').val();
       
-      memory.write('HudsonHawk', $.toJSON({
+      memory.write('HudsonHawk', $.toJSON([{ name: "Hudson", type: "hudson", settings: {
         serverUrl: newUrl,
         viewName: newViewName,
         userName: newUsername,
-        password: newPassword
-      }));
+        password: newPassword,
+        refreshSeconds: parseInt(newRefresh), 
+        giveUpAndRetrySeconds: parseInt(newRetryAfter)
+      }}]));
       
       hudson.loadNew(details());
       callbackOnOk(details());
@@ -485,9 +500,11 @@ var Territory = function(memory, hudson) {
   var settingsForm = function(popup) {
     var table = "<table><tbody>" 
                 + row("Hudson URL:", "<input id='urlOption' class='url' value='" + (details().serverUrl || "http://") + "'></input>") 
-                + row("View:", "<i id='viewOption'>" + (details().viewName || "<none>") + "</i>")
-                + row("User:", "<i id='userOption'>" + (details().userName || "<none>") + "</i>")
+                + row("View:", "<i id='viewOption'>" + (details().viewName || "") + "</i>")
+                + row("User:", "<i id='userOption'>" + (details().userName || "") + "</i>")
                 + row("Password:", "<input id='passwordOption' type='password' value='" + (details().password || "") + "'></input>") 
+                + row("Refresh rate (sec):", "<input id='refreshOption' value='" + (details().refreshSeconds || "30") + "'></input>")
+                + row("Retry after (sec):", "<input id='retryAfterOption' value='" + (details().giveUpAndRetrySeconds || "30") + "'></input>")
                 + "</tbody></table>";
     popup.append(table);
     $('#urlOption').change(function() { 
@@ -509,6 +526,7 @@ var Hudson = function() {
   var hudsonUrl;
   var username;
   var password;
+  var giveUpAndRetryAfter;
   
   var ToDoList = [];
   var ToDo = function(failureRetry) {
@@ -533,7 +551,7 @@ var Hudson = function() {
         callback(hudson); 
       }
     });
-    timeoutIdent = setTimeout(confirmWasCompleted(toDo), 30000);
+    timeoutIdent = setTimeout(confirmWasCompleted(toDo), giveUpAndRetryAfter * 1000);
   };
   
   // This confirmation is since Hudson will sometimes drop requests, and we cannot abort or timeout $.ajax() jsonp runs...
@@ -627,6 +645,7 @@ var Hudson = function() {
     hudsonUrl = cleanerUrl.charAt(cleanerUrl.length - 1) === '/' ? cleanerUrl : cleanerUrl + "/";
     username = territory.userName;
     password = territory.password;
+    giveUpAndRetryAfter = territory.giveUpAndRetrySeconds;
   };
 
   var descriptionQueue = [];
