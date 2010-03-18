@@ -10,7 +10,6 @@ Workplan:
 
 
 Bugs:
-- Fix username in flicker/fixed click
 - When using as a side bar in Firefox, View in Hudson button appears in new window
 
 Major items yet to do:
@@ -86,5 +85,6 @@ Items
   - Add refresh timeout to settings
   - Refactor settings to be a single JSON setting 
   - Add temporary migration from old to new settings
+- Fix username in flicker/fixed click
 
 
