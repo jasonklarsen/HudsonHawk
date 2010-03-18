@@ -65,6 +65,7 @@
 <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
 <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/jquery-ui.min.js"></script>
 <script src="http://jquery-json.googlecode.com/files/jquery.json-2.2.min.js"></script>
+<script src="http://github.com/cowboy/jquery-bbq/raw/v1.2.1/jquery.ba-bbq.min.js"></script>
 <script>
 /** Watcher of Hudson jobs. */
 var Hawk = function(hudson, prey, territory) {
@@ -326,9 +327,8 @@ var Radar = function(hudson, memory) {
         location.reload(true);
       });
     });
-    
-    var params = window.location.href.slice(window.location.href.indexOf('?') + 1);
-    if (params.indexOf('mini') > -1) {
+
+    if ($.deparam.querystring().mini || $.deparam.querystring().mini === "") {
       $('body').addClass('mini');
     }
     $('body').removeClass('notready').addClass('ready');
@@ -423,11 +423,9 @@ var Territory = function(memory, hudson) {
       buttons: { 'OK': function() {  $(this).dialog("close"); okCallback(); } },
       hide: "slide",
       modal: true,
-      width: 'auto',
-      maxWidth: 400,
-      height: 'auto',
+      width: 'auto', maxWidth: 400,
+      height: 'auto', maxHeight: 800,
       resizable: false,
-      maxHeight: 800,
       closeOnEscape: true,
       title: title,
       open: function(event, ui) { formBuilder(popup); }
@@ -435,6 +433,11 @@ var Territory = function(memory, hudson) {
   };
   
   var openSettingsIfNotFilledIn = function(callbackOnOk) {
+    if ($.deparam.querystring().settings) {
+      var settings = $.deparam.querystring().settings;
+      memory.write('HudsonHawk', settings);
+      //window.location.replace()
+    }
     if (details().serverUrl && details().viewName && details().userName) {
       hudson.loadNew(details());
       callbackOnOk(details());
