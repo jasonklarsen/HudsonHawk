@@ -22,16 +22,23 @@ before do
  Case.update_projects_at(time_since_start)
 end
 
-# Get list of views
+# List of views
 get "/api/json" do
   render_json :views => [{:name => "Default"}]
 end
 
-# Get list of users
+# List of users
 get "/people/api/json" do
   render_json :users => [{:user => {:fullName => "default_user"}}]
 end
 
-# Get failed jobs
+# All jobs for view
 get "/view/:view_name/api/json" do
+  render_json Case.projects_as_json
 end
+
+# Job details - TODO: skipping progress stuff
+get "/view/:view_name/job/:project_name/api/json" do
+  render_json Case.projects[params[:project_name]].details_as_json
+end
+
