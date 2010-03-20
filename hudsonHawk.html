@@ -216,7 +216,6 @@ var Radar = function(hudson, memory) {
       return;
     }
     currentlyExplodedView = true;
-    //$("#jobs").hide('puff', {}, 1000);
     var username = $.parseJSON(memory.read('HudsonHawk'))[0].settings.userName;
     var buttons = { 'View In Hudson': function() {  $(this).dialog("close"); window.open(listing.url); } };
     if (listing.state != 'fixed') {
@@ -247,10 +246,7 @@ var Radar = function(hudson, memory) {
   var add = function(listing) {
     create(listing);
     explodeDetail(listing, 5000, function() {
-      //$("#jobs").show("blind", { direction: "vertical" }, 1100);
-      //setTimeout(function() { 
-        $("#" + listing.name).show("blind", { direction: "vertical" }, 2000); 
-      //}, 1100);
+      $("#" + listing.name).show("blind", { direction: "vertical" }, 2000); 
     });
   };
   
@@ -436,7 +432,7 @@ var Territory = function(memory, hudson) {
     if ($.deparam.querystring().settings) {
       var settings = $.deparam.querystring().settings;
       memory.write('HudsonHawk', settings);
-      //window.location.replace()
+      window.location.replace(window.location.href.split('?')[0]);
     }
     if (details().serverUrl && details().viewName && details().userName) {
       hudson.loadNew(details());
