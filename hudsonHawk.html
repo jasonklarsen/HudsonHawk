@@ -335,7 +335,7 @@ var Radar = function(hudson, memory) {
 
 /**  Storage utils (via Cookies or HTML5 storage if supported) */
 var Memory = function() {
-  var cookieStorage = {
+  var cookieMemory = {
     write: function(name, value) {
       var date = new Date();
       date.setTime(date.getTime() + (500 * 24 * 60 * 60 * 1000)); // 500 days from now
@@ -359,12 +359,14 @@ var Memory = function() {
   
   var hasLocalStorage = function() { return !$.browser.mozilla && !!localStorage; } ;// Firefox 3.5 has localStorage but it doesn't seem to work right....
   
-  var storage = hasLocalStorage() ? { write: function(name, value) { localStorage.setItem(name, value); }, read: function(name) { return localStorage.getItem(name); } } : cookieStorage; 
+  var localMemory = { write: function(name, value) { localStorage.setItem(name, value); }, read: function(name) { return localStorage.getItem(name); } };
+  
+  var memory = hasLocalStorage() ? localMemory : cookieMemory; 
   
   return {
-    write: storage.write,
-    erase: function(name) { storage.write(name, ""); },
-    read: storage.read
+    write: memory.write,
+    erase: function(name) { memory.write(name, ""); },
+    read: memory.read
   }
 };
 
