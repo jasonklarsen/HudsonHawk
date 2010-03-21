@@ -20,7 +20,6 @@ Major items yet to do:
 
 Minor items yet to do:
 - Remove buttons on exploded alert popup
-- Create a bottom bar that includes last update time, current server and view and Settings button (which floats over any builds)
 - Add a revert to original status button
 - Provide a visual indicator of the change description actions (so we can see when the flicker state *does* get set....)
 - Implement retry mechanism for failed status changes
@@ -82,6 +81,8 @@ Items
 - Resiliency to a JSON request - We now retry after 30 seconds
 - Fix username in flicker/fixed click
 - Settings params stay in url bar (and gets re-used despite manually setting the settings to something else)
+- Create a bottom bar that includes last update time, current server and view and Settings button (which floats over any builds)
+
 - End to end testing scenarios:
   - Add refresh timeout to settings
   - Refactor settings to be a single JSON setting 
