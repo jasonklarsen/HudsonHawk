@@ -34,7 +34,7 @@
   .mini .ui-widget { font-size: 0.9em; }
   .mini .ui-widget td { font-size: 0.8em; }
   .mini input.url { width: 100px; }
-  .mini #settings { font-size: 0.8em; }
+  .mini #settings { font-size: 0.8em; height: 1em; }
    
   .broken, .ui-dialog div.broken { background-color: #8B0000; }
   .failed, .ui-dialog div.failed { background-color: red; }
@@ -45,15 +45,30 @@
   .unknown, .ui-dialog div.unknown { background-color: yellow; }
 
   input.url { width: 350px; }
-  #settings { position: absolute; bottom: 0; right: 0; display: none; }
+  #settings { position: absolute; bottom: 0; right: 0; display: none; background-color: #444; white-space: nowrap; height: 45px; }
   #settings button { padding: 3px; font-size: 150%; }
+  #settings #settingsButton { float: right; }
+  #settings #open, #settings #lastEvent { float: left; }
+  #settings #logs, #settings #lastUpdate, #settings #state { float: right; }
+  #settings .extra { display: none; }
+  #settings #close { float: left; display: none; }
+  #settings span { font-size: 125%; color: #fff; text-shadow: 1px 1px 3px #000; padding-top: 10px; padding-right: 3px; }
+  
   .ready #settings { display: block; }
   </style>
 </head>
 <body class="notready">
 
 <div id="jobs">
-<div id="settings"><button type="button">Settings</button></div>
+  <div id="settings">
+    <button id="close" type="button">&gt;</button>
+    <button id="open" type="button">&lt;</button>
+    <span id="lastEvent" class="extra">Last event: --</span>
+    <button id="settingsButton" type="button">Settings</button>
+    <button id="state" type="button" class="extra">State</button>
+    <button id="logs" type="button" class="extra">Logs</button>
+    <span id="lastUpdate" class="extra"></span>
+  </div>
 </div>
 <div id="details" class="details"></div>
 <div id="popup" style="display: none"></div>
@@ -72,10 +87,12 @@ var Hawk = function(hudson, prey, territory) {
   
   var awaken = function() {
     territory.recallAndThen(function(territory) {
-      hudson.failedJobsFor(territory.viewName, loadInto(prey)); 
-      beginSurveillanceOver(territory);
+      hudson.failedJobsFor(territory.viewName, function(jobs) {
+        prey.initializeWith(jobs);
+        beginSurveillanceOver(territory);
+      }); 
     });
-    setupRefresh();
+    setupNextFlight();
   };
   
   var beginSurveillanceOver = function(territory) {
@@ -88,16 +105,10 @@ var Hawk = function(hudson, prey, territory) {
     setTimeout(flightPlan, territory.refreshSeconds * 1000);  
   };
   
-  var setupRefresh = function() {
-    setTimeout(function() { location.reload(true); }, 60 * 60 * 1000); // 1 hour
+  var setupNextFlight = function() {
+    setTimeout(function() { location.reload(true); }, 2 * 60 * 60 * 1000); // Page refresh every 2 hours
   };
   
-  var loadInto = function(prey) {
-    return function(jobs) {
-      prey.initializeWith(jobs);
-    };
-  };
-    
   return { awaken: awaken };  
 };
 
@@ -145,6 +156,7 @@ var Prey = function(radar) {
     $(currentListings.values).each(function() { radar.load(this); });
     filter(currentListings, filterNowInProgress).andForEach(radar.highlight);
     radar.enable();
+    radar.finishedSweep();
   };
   
   var filterNowInProgress = function(i, listing) { return listing.inProgress; };
@@ -165,6 +177,7 @@ var Prey = function(radar) {
     filter(newListings, function() { return true; }).andForEach(radar.updatePopupDetail);
     
     currentListings = newListings;
+    radar.finishedSweep();
   };
   
   var filter = function(listings, filterFxn) { 
@@ -185,10 +198,12 @@ var Radar = function(hudson, memory) {
   var currentlyExplodedView = false;
   
   var readd = function(listing) {
+    memory.noticeEvent("Re-added " + listing.name + " with status " + listing.state);
     removeAnd(listing, function() { add(listing); });
   };
   
   var remove = function(listing) {
+    memory.noticeEvent("Removed " + listing.name);
     removeAnd(listing, function() {});
   };
    
@@ -200,6 +215,7 @@ var Radar = function(hudson, memory) {
   }
   
   var describeAndMark = function(listing, description, username, newClass) {
+    memory.noticeEvent("Marked " + listing.name + " with status " + newClass);
     hudson.changeDescription(listing.name, listing.buildNumber, description + (username ? " by " + username : ""));
     removeAllClasses(listing, newClass);
   };
@@ -244,6 +260,7 @@ var Radar = function(hudson, memory) {
   };
   
   var add = function(listing) {
+    memory.noticeEvent("Added " + listing.name + " with status " + listing.state);
     create(listing);
     explodeDetail(listing, 5000, function() {
       $("#" + listing.name).show("blind", { direction: "vertical" }, 2000); 
@@ -251,6 +268,7 @@ var Radar = function(hudson, memory) {
   };
   
   var load = function(listing) {
+    memory.noticeEvent("Loaded " + listing.name + " with status " + listing.state);
     create(listing);
     $("#" + listing.name).show();
   };
@@ -259,7 +277,7 @@ var Radar = function(hudson, memory) {
     $('#jobs').prepend('<div id="' + listing.name + '" class="' + listing.state + ' job" style="display: none"><span>' + listing.name + ' <span class="count">(' + listing.numberSinceFailure + ')</span></span></div>');
     updatePopupDetail(listing);    
     $("#" + listing.name)
-      .click(function() { explodeDetail(listing, 0, function() { /*$("#jobs").show("blind", { direction: "vertical" }, 2000); */ }); });
+      .click(function() { explodeDetail(listing, 0, function() {}); });
   };
   
   var updatePopupDetail = function(listing) {
@@ -296,6 +314,7 @@ var Radar = function(hudson, memory) {
   };
   
   var fade_highlight = function(listing) {
+    memory.noticeEvent("Marked " + listing.name + " as over its expected finish time ");
     var itemWhenInitiallyCalled = $("#" + listing.name).get(0);
     var elem = function() { return (itemWhenInitiallyCalled === $("#" + listing.name).get(0)) ? $(itemWhenInitiallyCalled) : $('objectThatDoesntExist'); }
     var fadeOut = function() {
@@ -314,14 +333,37 @@ var Radar = function(hudson, memory) {
   };
   
   var changeState = function(listing) {
+    memory.noticeEvent("Updated " + listing.name + " to status " + listing.state);
     removeAllClasses(listing, listing.state);
   };
   
   var enable = function() {
-    $("#settings").click(function() { 
+    $("#settings #settingsButton").click(function() { 
       territory.openSettingsAndThen(function(territory) {
         location.reload(true);
       });
+    });
+    $("#settings #logs").click(function() { 
+      alert('Does nothing for now');
+    });
+    $("#settings #state").click(function() { 
+      alert('Does nothing for now');
+    });
+    $("#settings #open").click(function() { 
+      $("#settings #open").hide();
+      $("#settings #close").show();
+      $("#settings .extra").delay(500).show("slide", { direction: "right" }, 2000);
+      $("#settings").animate({ width: "100%" }, { duration: 2000 });
+    });
+    $("#settings #close").click(function() { 
+      $("#settings #close").hide()
+      $("#settings #open").show();
+      $("#settings .extra").hide("slide", { direction: "left" }, 1000);      
+      $("#settings").animate({ width: "15%" }, { duration: 2000, complete: function() { $("#settings").css("width", "inherit"); } });
+    });
+    
+    memory.addEventListener(function(event) { 
+      $("#settings #lastEvent").empty().append("Last event: " + dateString(event.date) + ": " + event.description);
     });
 
     if ($.deparam.querystring().mini || $.deparam.querystring().mini === "") {
@@ -330,7 +372,16 @@ var Radar = function(hudson, memory) {
     $('body').removeClass('notready').addClass('ready');
   };
   
-  return { remove: remove, add: add, highlight: highlight, readd: readd, load: load, changeState: changeState, enable: enable, updatePopupDetail: updatePopupDetail };
+  var two = function(n) { var out = "" + n; return out.length == 1 ? "0" + out : out; };
+  var dateString = function(d) {
+    return d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate()) + " " + two(d.getHours()) + ":" + two(d.getMinutes()) + ":" + two(d.getSeconds());
+  };
+  
+  var finishedSweep = function() {
+    $("#settings #lastUpdate").empty().append("Last refreshed: " + dateString(new Date()));
+  };
+  
+  return { remove: remove, add: add, highlight: highlight, readd: readd, load: load, changeState: changeState, enable: enable, updatePopupDetail: updatePopupDetail, finishedSweep: finishedSweep };
 };
 
 /**  Storage utils (via Cookies or HTML5 storage if supported) */
@@ -358,15 +409,29 @@ var Memory = function() {
   }
   
   var hasLocalStorage = function() { return !$.browser.mozilla && !!localStorage; } ;// Firefox 3.5 has localStorage but it doesn't seem to work right....
-  
   var localMemory = { write: function(name, value) { localStorage.setItem(name, value); }, read: function(name) { return localStorage.getItem(name); } };
-  
   var memory = hasLocalStorage() ? localMemory : cookieMemory; 
+  
+  var events = [];
+  var listeners = [];
+  var addEvent = function(description) {
+    if (events.length > 100) { events.shift(); }
+    var now = new Date();
+    var event = { date: now, description: description };
+    events.push(event);
+    $(listeners).each(function() { this(event) });
+  };
+  
+  var getEvents = function() { return events; };
+  var addListener = function(listener) { listeners.push(listener); };
   
   return {
     write: memory.write,
     erase: function(name) { memory.write(name, ""); },
-    read: memory.read
+    read: memory.read,
+    noticeEvent: addEvent,
+    recallEvents: getEvents,
+    addEventListener: addListener 
   }
 };
 
