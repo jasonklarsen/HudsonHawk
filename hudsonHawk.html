@@ -682,10 +682,10 @@ var Hudson = function() {
   var updateJobProgress = function(job, slaveDetail, jobDetail) {
     job.inProgress = true;
     if (!!slaveDetail.executors) {
-//      $.each(slaveDetail.executors, getProgressFromExecutable(job, jobDetail));
+      $.each(slaveDetail.executors, getProgressFromExecutable(job, jobDetail));
     }
     if (!!slaveDetail.oneOffExecutors) {
-//      $.each(slaveDetail.oneOffExecutors, getProgressFromExecutable(job, jobDetail));
+      $.each(slaveDetail.oneOffExecutors, getProgressFromExecutable(job, jobDetail));
     }
     if (!job.progress || job.progress < 1) {
       var durationComplete = deriveProgressFrom(jobDetail);
