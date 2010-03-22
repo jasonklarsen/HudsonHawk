@@ -10,7 +10,6 @@ Workplan:
 
 Bugs:
 - If you have popup open when a refresh is occuring, it closes the popup. This is really obvious when you have a fast refresh on.
-- Need number formatting (i.e. rounding) on derived % build time 
 - When using as a side bar in Firefox, View in Hudson button appears in new window
 
 Major items yet to do:
@@ -84,6 +83,7 @@ Items
 - Fix username in flicker/fixed click
 - Settings params stay in url bar (and gets re-used despite manually setting the settings to something else)
 - Create a bottom bar that includes last update time, current server and view and Settings button (which floats over any builds)
+- Need number formatting (i.e. rounding) on derived % build time 
 
 - End to end testing scenarios:
   - Add refresh timeout to settings

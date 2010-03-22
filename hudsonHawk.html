@@ -682,10 +682,10 @@ var Hudson = function() {
   var updateJobProgress = function(job, slaveDetail, jobDetail) {
     job.inProgress = true;
     if (!!slaveDetail.executors) {
-      $.each(slaveDetail.executors, getProgressFromExecutable(job, jobDetail));
+//      $.each(slaveDetail.executors, getProgressFromExecutable(job, jobDetail));
     }
     if (!!slaveDetail.oneOffExecutors) {
-      $.each(slaveDetail.oneOffExecutors, getProgressFromExecutable(job, jobDetail));
+//      $.each(slaveDetail.oneOffExecutors, getProgressFromExecutable(job, jobDetail));
     }
     if (!job.progress || job.progress < 1) {
       var durationComplete = deriveProgressFrom(jobDetail);
@@ -702,7 +702,7 @@ var Hudson = function() {
     });
     var averageDuration = durationTotal / jobDetail.builds.length;
     var currentDuration = new Date().getTime() - jobDetail.lastBuild.timestamp;
-    return currentDuration / averageDuration;
+    return (currentDuration / averageDuration).toPrecision(2);
   }
   
   var byCompletionTimeAscending = function(a, b) { 
