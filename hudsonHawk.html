@@ -364,7 +364,7 @@ var Radar = function(hudson, memory) {
     });
     
     memory.addEventListener(function(event) { 
-      $("#settings #lastEvent").empty().append("Last event: " + dateString(event.date) + ": " + event.description);
+      $("#settings #lastEvent").empty().append(event.description);
     });
 
     if ($.deparam.querystring().mini || $.deparam.querystring().mini === "") {
@@ -379,7 +379,7 @@ var Radar = function(hudson, memory) {
   };
   
   var finishedSweep = function() {
-    $("#settings #lastUpdate").empty().append("Last refreshed: " + dateString(new Date()));
+    $("#settings #lastUpdate").empty().append("Refreshed: " + dateString(new Date()));
   };
   
   return { remove: remove, add: add, highlight: highlight, readd: readd, load: load, changeState: changeState, enable: enable, updatePopupDetail: updatePopupDetail, finishedSweep: finishedSweep };
