@@ -1,9 +1,12 @@
+#!/usr/bin/ruby
 $LOAD_PATH.unshift(File.dirname(__FILE__))
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), "..", "test"))
 require "rubygems"
 require "sinatra"
 require "json"
 require "test_case_dsl"
+
+raise "Missing file name parameter" if !ARGV[0]
 
 configure do
   Case = TestCase.load_from(ARGV[0])
