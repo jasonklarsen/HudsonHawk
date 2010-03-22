@@ -53,7 +53,7 @@
   #settings #logs, #settings #lastUpdate, #settings #state { float: right; }
   #settings .extra { display: none; }
   #settings #close { float: left; display: none; }
-  #settings span { font-size: 125%; color: #fff; text-shadow: 1px 1px 3px #000; padding-top: 10px; padding-right: 3px; }
+  #settings span { font-size: 125%; color: #fff; text-shadow: 1px 1px 3px #000; padding-top: 10px; padding-right: 3px; padding-left: 3px; }
   
   .ready #settings { display: block; }
   </style>
@@ -285,11 +285,12 @@ var Radar = function(hudson, memory) {
     if (!$("#" + listing.name).is(':visible')) {
       $("#" + listing.name).show();
     }
-    $("#" + listing.name + '--detail').remove();
-    $('#details').prepend('<div id="' + listing.name + '--detail" class="' + listing.state + ' jobdetail" style="display: none">' + listing.name 
-                          + '<div class="count">Failed for last ' + listing.numberSinceFailure + ' builds'
+    if ($("#" + listing.name + '--detail').size() == 0) {
+      $('#details').prepend('<div id="' + listing.name + '--detail" class="' + listing.state + ' jobdetail" style="display: none"></div>');
+    }
+    $("#" + listing.name + '--detail').empty().prepend(listing.name + '<div class="count">Failed for last ' + listing.numberSinceFailure + ' builds'
                           + (listing.progress ? ', and is ' + listing.progress + '% complete' : '') + '</div>'
-                          + (listing.description ? '<div class="count">' + listing.description + '</div>' : '') +'</div>');
+                          + (listing.description ? '<div class="count">' + listing.description + '</div>' : ''));
   };
   
   var highlight = function(listing) {
