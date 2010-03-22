@@ -10,6 +10,7 @@ Workplan:
 
 Bugs:
 - If you have popup open when a refresh is occuring, it closes the popup. This is really obvious when you have a fast refresh on.
+- Need number formatting (i.e. rounding) on derived % build time 
 - When using as a side bar in Firefox, View in Hudson button appears in new window
 
 Major items yet to do:
