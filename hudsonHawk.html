@@ -55,6 +55,8 @@
   #settings #close { float: left; display: none; }
   #settings span { font-size: 125%; color: #fff; text-shadow: 1px 1px 3px #000; padding-top: 10px; padding-right: 3px; padding-left: 3px; }
   
+  #logList td { font-size: 75%;  }
+  
   .ready #settings { display: block; }
   </style>
 </head>
@@ -73,6 +75,8 @@
 </div>
 <div id="details" class="details"></div>
 <div id="popup" style="display: none"></div>
+<div id="logList" style="display: none"></div>
+<div id="stateList" style="display: none"></div>
 
 <!--
 <script src="http://www.google.com/jsapi"></script>
@@ -234,7 +238,7 @@ var Radar = function(hudson, memory) {
     }
     currentlyExplodedView = true;
     var username = $.parseJSON(memory.read('HudsonHawk'))[0].settings.userName;
-    var buttons = { 'View In Hudson': function() {  $(this).dialog("close"); window.open(listing.url); } };
+    var buttons = { 'View In Hudson': function() { $(this).dialog("close"); window.open(listing.url); } };
     if (listing.state != 'fixed') {
       buttons['Status: Fixed'] = function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed', username, 'fixed'); };
     } 
@@ -346,10 +350,18 @@ var Radar = function(hudson, memory) {
       });
     });
     $("#settings #logs").click(function() { 
-      alert('Does nothing for now');
+      $("#logList").empty().append("<table>" + $(memory.recallEvents().reverse()).map(function() { return "<tr><td>" + dateString(this.date) + "</td><td>" + this.description + "</td></tr>" }).get().join("") + "</table>");
+      $("#logList").dialog({ closeOnEscape: true, modal: true, title: "Recent activity", autoOpen: false, width: 600, height: 500 });
+      $("#logList").dialog('open');
     });
     $("#settings #state").click(function() { 
-      alert('Does nothing for now');
+
+      $("#stateList").empty().append("<table><tr><th>Name</th><th>State</th><th>In progress</th><th>Failures</th><th>Build</th></tr>" 
+                                     //+ prey.listings()
+                                     + "<tr>Not implemented yet</tr>"
+                                     + "</table>");
+      $("#stateList").dialog({ closeOnEscape: true, modal: true, title: "Current state", autoOpen: false, width: 600, height: 500 });
+      $("#stateList").dialog('open');
     });
     $("#settings #open").click(function() { 
       $("#settings #open").hide();
