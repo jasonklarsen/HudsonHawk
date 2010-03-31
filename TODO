@@ -12,6 +12,7 @@ Bugs:
 - When using as a side bar in Firefox, View in Hudson button appears in new window
 
 Major items yet to do:
+- Provide a compiled version that includes any external JS/CSS.  Need to consider image files....
 - Provide multiple server/views to watch
 - Provide integration into Nagios
 - Provide a Trace view that allows you to trace a given job and see a tree of builds that have been triggered by that job (or were triggered by that job)
@@ -84,6 +85,7 @@ Items
 - Create a bottom bar that includes last update time, current server and view and Settings button (which floats over any builds)
 - Need number formatting (i.e. rounding) on derived % build time 
 - If you have popup open when a refresh is occuring, it closes the popup. This is really obvious when you have a fast refresh on.
+- Guard against NaN in progress bar
 
 - End to end testing scenarios:
   - Add refresh timeout to settings

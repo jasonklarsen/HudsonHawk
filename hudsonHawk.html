@@ -293,7 +293,7 @@ var Radar = function(hudson, memory) {
       $('#details').prepend('<div id="' + listing.name + '--detail" class="' + listing.state + ' jobdetail" style="display: none"></div>');
     }
     $("#" + listing.name + '--detail').empty().prepend(listing.name + '<div class="count">Failed for last ' + listing.numberSinceFailure + ' builds'
-                          + (listing.progress ? ', and is ' + listing.progress + '% complete' : '') + '</div>'
+                          + (listing.progress ? ', and is ' + ("" + listing.progress).substring(0, 5) + '% complete' : '') + '</div>'
                           + (listing.description ? '<div class="count">' + listing.description + '</div>' : ''));
   };
   
@@ -715,7 +715,8 @@ var Hudson = function() {
     });
     var averageDuration = durationTotal / jobDetail.builds.length;
     var currentDuration = new Date().getTime() - jobDetail.lastBuild.timestamp;
-    return (currentDuration / averageDuration).toPrecision(2);
+    var progress = (currentDuration / averageDuration).toPrecision(2);
+    return isNaN(progress) ? 0 : progress;
   }
   
   var byCompletionTimeAscending = function(a, b) { 
