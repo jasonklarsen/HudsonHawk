@@ -4,7 +4,7 @@ require 'net/http'
 require 'uri'
 
 original = File.new("hudsonHawk.html", "r")
-new = File.new("hudsonHawk.compiled.html", "w")
+new = File.new("hudsonHawk.inlined.html", "w")
 
 def fetch(uri_str, limit = 10)
   raise ArgumentError, 'HTTP redirect too deep' if limit == 0
