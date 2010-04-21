@@ -588,7 +588,7 @@ var Territory = function(memory, hudson) {
                 + "</tbody></table>";
     popup.append(table);
     $('#urlOption').change(function() { 
-      hudson.loadNew({ serverUrl: $('#urlOption').val(), userName: "", viewName: "", password: "" });
+      hudson.loadNew({ serverUrl: $('#urlOption').val(), userName: "", viewName: "", password: "", refreshSeconds: 30, giveUpAndRetrySeconds: 45 });
       refreshViewsOnPopup(); 
       refreshUsersOnPopup();
     });
