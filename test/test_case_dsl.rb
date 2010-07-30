@@ -4,7 +4,7 @@ class TestCase
 
   def initialize
     @projects = {}
-    @events = []    
+    @events = []
   end
 
   def update_projects_at(current_time)
@@ -34,7 +34,7 @@ class TestCase
   end
 
   def project(name, config_options)
-    @projects[name] = Project.new(name, config_options)    
+    @projects[name] = Project.new(name, config_options)
   end
 
   def events
@@ -60,7 +60,7 @@ class Project
   end
 
   def current_timestamp
-    @statuses.last[:timestamp]	  
+    @statuses.last[:timestamp]	
   end
 
   def change(options)
@@ -68,7 +68,7 @@ class Project
   end
 
   def to_json
-    {:name => @name, :color => color} 	 
+    {:name => @name, :color => color} 	
   end
 
   def details_as_json
@@ -89,18 +89,21 @@ class Project
       :passed => :blue,
       :aborted => :aborted,
       :flicker => :yellow,
-      :fixed => :yellow
+      :fixed => :yellow,
+      :being_fixed => :yellow
     }[current_status]
   end
 
   def description
      case current_status
        when :flicker
-	 "Build: Flicker"
+         "Build: Flicker"
        when :fixed
-         "Build: Fixed"	       
+         "Build: Fixed"	
+       when :being_fixed
+         "Build: Being Fixed"
        else
-         ""	       
+         ""	
      end
   end
 
@@ -115,10 +118,10 @@ class AfterEvent
 
   def initialize(timeout, &action)
     @timeout = timeout
-    @action = action    
+    @action = action
   end
 
   def should_run?(current_time)
-    @timeout < current_time		  
+    @timeout < current_time		
   end
 end

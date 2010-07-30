@@ -12,7 +12,7 @@
  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  See the License for the specific language governing permissions and
  limitations under the License.
- -->    
+ -->
 <html>
 <head>
   <title>Hudson Hawk</title>
@@ -24,7 +24,7 @@
   .job .count { color: #bbb; }
   .jobdetail { border: 4px black solid; font-size: 500%; white-space: nowrap; text-shadow: 2px 2px 5px #000; font-weight:bold; color:#fff; font-family: sans-serif; }
   .jobdetail .count { font-size: 50%; color: #ccc; }
-  
+
   .mini .job { text-shadow: 1px 1px 3px #000; -webkit-box-shadow: none; -webkit-border-radius: 0; -moz-box-shadow: none; -moz-border-radius: 0; font-size: 100%; }
   .mini .jobdetail { font-size: 125%; text-shadow: 1px 1px 3px #000; }
   .mini .ui-dialog { padding: 0; }
@@ -36,10 +36,11 @@
   .mini input.url { width: 100px; }
   .mini #settings { font-size: 0.8em; }
   .mini #open { display: none; }
-   
+
   .broken, .ui-dialog div.broken { background-color: #8B0000; }
   .failed, .ui-dialog div.failed { background-color: red; }
   .fixed, .ui-dialog div.fixed { background-color: orange; }
+  .being_fixed, .ui-dialog div.being_fixed { background-color: #3366FF; }
   .flicker, .ui-dialog div.flicker { background-color: purple; color: white; }
   .passed, .ui-dialog div.passed { background-color: green; }
   .aborted, .ui-dialog div.aborted { background-color: yellow; }
@@ -54,9 +55,9 @@
   #settings .extra { display: none; }
   #settings #close { float: left; display: none; }
   #settings span { font-size: 125%; color: #fff; text-shadow: 1px 1px 3px #000; padding-top: 10px; padding-right: 3px; padding-left: 3px; }
-  
+
   #logList td { font-size: 75%;  }
-  
+
   .ready #settings { display: block; }
   </style>
 </head>
@@ -89,53 +90,59 @@
 <script>
 /** Watcher of Hudson jobs. */
 var Hawk = function(hudson, prey, territory) {
-  
+
   var awaken = function() {
     territory.recallAndThen(function(territory) {
       hudson.failedJobsFor(territory.viewName, function(jobs) {
         prey.initializeWith(jobs);
         beginSurveillanceOver(territory);
-      }); 
+      });
     });
     setupNextFlight();
   };
-  
+
   var beginSurveillanceOver = function(territory) {
-    var flightPlan = function() { 
+    var flightPlan = function() {
       hudson.failedJobsFor(territory.viewName, function(jobs) {
-        prey.target(jobs); 
-        setTimeout(flightPlan, territory.refreshSeconds * 1000); 
+        prey.target(jobs);
+        setTimeout(flightPlan, territory.refreshSeconds * 1000);
       });
     };
-    setTimeout(flightPlan, territory.refreshSeconds * 1000);  
+    setTimeout(flightPlan, territory.refreshSeconds * 1000);
   };
-  
+
   var setupNextFlight = function() {
     setTimeout(function() { location.reload(true); }, 2 * 60 * 60 * 1000); // Page refresh every 2 hours
   };
-  
-  return { awaken: awaken };  
+
+  return { awaken: awaken };
 };
 
 /** Hudson jobs to watch for */
 var Prey = function(radar) {
 
   var colorToState = { red: "broken", yellow: "failed", blue: "passed", aborted: "aborted" };
-  
+
   var getState = function(color, description) {
     var fromColor = function() {
-      return colorToState[color.replace("_anime", "")]; 
+      return colorToState[color.replace("_anime", "")];
     };
     var fromDescription = function() {
-      return description.indexOf('Build: Flicker') === 0 ? "flicker" : (description.indexOf('Build: Fixed') === 0 ? "fixed" : null);
-    };  
+        if (description.indexOf('Build: Flicker') == 0) {
+            return "flicker";
+        } else if (description.indexOf('Build: Fixed') == 0) {
+            return "fixed";
+        } else if (description.indexOf('Build: Being Fixed') == 0) {
+            return "being_fixed";
+        }
+    };
     return fromDescription() || fromColor() || 'unknown';
   };
-  
+
   var Listing = function(job) {
     var newDescription = job.lastCompletedBuild && job.lastCompletedBuild.description ? job.lastCompletedBuild.description: "";
-    return { name:               job.name, 
-             state:              getState(job.color, newDescription), 
+    return { name:               job.name,
+             state:              getState(job.color, newDescription),
              url:                job.lastCompletedBuild ? job.lastCompletedBuild.url : "",
              inProgress:         job.color.indexOf('anime') > -1 || job.inProgress,
              progress:           job.progress,
@@ -143,7 +150,7 @@ var Prey = function(radar) {
              numberSinceFailure: job.lastCompletedBuild && job.lastStableBuild ? parseInt(job.lastCompletedBuild.number) - parseInt(job.lastStableBuild.number) : "??",
              buildNumber:        job.lastCompletedBuild ? job.lastCompletedBuild.number : null };
   };
- 
+
   var Listings = function(jobs) {
     var names = {}, values = [];
     $(jobs).each(function() {
@@ -153,9 +160,9 @@ var Prey = function(radar) {
     });
     return { names: names, values: values };
   };
-  
+
   var currentListings = Listings([]);
-  
+
   var initialize = function(jobs) {
     currentListings = Listings(jobs);
     $(currentListings.values).each(function() { radar.load(this); });
@@ -163,9 +170,9 @@ var Prey = function(radar) {
     radar.enable();
     radar.finishedSweep();
   };
-  
+
   var filterNowInProgress = function(i, listing) { return listing.inProgress; };
-  
+
   var target = function(jobs) {
     var newListings = Listings(jobs);
 
@@ -173,24 +180,24 @@ var Prey = function(radar) {
     var notInOldList = function(i, listing) { return !currentListings.names[listing.name]; };
     var withChangedBuildNumbers = function(i, listing) { return currentListings.names[listing.name] && listing.buildNumber !== currentListings.names[listing.name].buildNumber; };
     var withChangedState = function(i, listing) { return currentListings.names[listing.name] && listing.state !== currentListings.names[listing.name].state; };
-    
+
     filter(currentListings, notInNewList)           .andForEach(radar.remove);
     filter(newListings,     notInOldList)           .andForEach(radar.add);
     filter(newListings,     withChangedBuildNumbers).andForEach(radar.readd);
     filter(currentListings, filterNowInProgress)    .andForEach(radar.highlight);
     filter(newListings,     withChangedState)       .andForEach(radar.changeState);
     filter(newListings, function() { return true; }).andForEach(radar.updatePopupDetail);
-    
+
     currentListings = newListings;
     radar.finishedSweep();
   };
-  
-  var filter = function(listings, filterFxn) { 
-    return { andForEach: function(fxn) { 
+
+  var filter = function(listings, filterFxn) {
+    return { andForEach: function(fxn) {
       $(listings.values).filter(filterFxn).each(function() { fxn(this); });
     } };
   }
-    
+
   return {
     target: target,
     initializeWith: initialize
@@ -199,38 +206,38 @@ var Prey = function(radar) {
 
 /** View of the Prey data (i.e. screen) */
 var Radar = function(hudson, memory) {
-  
+
   var currentlyExplodedView = false;
-  
+
   var readd = function(listing) {
     memory.noticeEvent("Re-added " + listing.name + " with status " + listing.state);
     removeAnd(listing, function() { add(listing); });
   };
-  
+
   var remove = function(listing) {
     memory.noticeEvent("Removed " + listing.name);
     removeAnd(listing, function() {});
   };
-   
+
   var removeAnd = function(listing, fxn) {
     $("#" + listing.name).hide("blind", { direction: "vertical" }, 3000);
-    setTimeout(function() { $("#" + listing.name).remove(); 
-                            $("#" + listing.name + "--detail").dialog('destroy').remove(); 
+    setTimeout(function() { $("#" + listing.name).remove();
+                            $("#" + listing.name + "--detail").dialog('destroy').remove();
                             fxn(); }, 3000);
   }
-  
+
   var describeAndMark = function(listing, description, username, newClass) {
     memory.noticeEvent("Marked " + listing.name + " with status " + newClass);
     hudson.changeDescription(listing.name, listing.buildNumber, description + (username ? " by " + username : ""));
     removeAllClasses(listing, newClass);
   };
-  
+
   var removeAllClasses = function(listing, newClass) {
-    $("#" + listing.name).removeClass("broken failed unknown aborted passed flicker fixed").addClass(newClass);
-    $("#" + listing.name + "--detail").removeClass("broken failed unknown aborted passed flicker fixed").addClass(newClass);  
+    $("#" + listing.name).removeClass("broken failed unknown aborted passed flicker fixed being_fixed").addClass(newClass);
+    $("#" + listing.name + "--detail").removeClass("broken failed unknown aborted passed flicker fixed being_fixed").addClass(newClass);
     listing.state = newClass;
   }
-  
+
   var explodeDetail = function(listing, closeAfter, andThen) {
     if (currentlyExplodedView) {
       setTimeout(function() { explodeDetail(listing, closeAfter, andThen); }, 500);
@@ -241,12 +248,15 @@ var Radar = function(hudson, memory) {
     var buttons = { 'View In Hudson': function() { $(this).dialog("close"); window.open(listing.url); } };
     if (listing.state != 'fixed') {
       buttons['Status: Fixed'] = function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Fixed', username, 'fixed'); };
-    } 
+    }
     if (listing.state != 'flicker') {
       buttons['Status: Flicker'] = function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Flicker', username, 'flicker'); };
     }
-    
-    $("#" + listing.name + '--detail').dialog({ 
+    if (listing.state != 'being_fixed') {
+      buttons['Status: Being fixed'] = function() {  $(this).dialog("close"); describeAndMark(listing, 'Build: Being Fixed', username, 'being_fixed'); };
+    }
+
+    $("#" + listing.name + '--detail').dialog({
       buttons: buttons,
       hide: "scale",
       width: 'auto',
@@ -257,34 +267,34 @@ var Radar = function(hudson, memory) {
       close: function() { currentlyExplodedView = false; andThen(); }
     });
     if (closeAfter > 0) {
-      setTimeout(function() { 
+      setTimeout(function() {
         currentlyExplodedView = false;
-        $("#" + listing.name + '--detail').dialog('close'); 
+        $("#" + listing.name + '--detail').dialog('close');
       }, closeAfter);
     }
   };
-  
+
   var add = function(listing) {
     memory.noticeEvent("Added " + listing.name + " with status " + listing.state);
     create(listing);
     explodeDetail(listing, 5000, function() {
-      $("#" + listing.name).show("blind", { direction: "vertical" }, 2000); 
+      $("#" + listing.name).show("blind", { direction: "vertical" }, 2000);
     });
   };
-  
+
   var load = function(listing) {
     memory.noticeEvent("Loaded " + listing.name + " with status " + listing.state);
     create(listing);
     $("#" + listing.name).show();
   };
-  
+
   var create = function(listing) {
     $('#jobs').prepend('<div id="' + listing.name + '" class="' + listing.state + ' job" style="display: none"><span>' + listing.name + ' <span class="count">(' + listing.numberSinceFailure + ')</span></span></div>');
-    updatePopupDetail(listing);    
+    updatePopupDetail(listing);
     $("#" + listing.name)
       .click(function() { explodeDetail(listing, 0, function() {}); });
   };
-  
+
   var updatePopupDetail = function(listing) {
     if (!$("#" + listing.name).is(':visible')) {
       $("#" + listing.name).show();
@@ -296,15 +306,15 @@ var Radar = function(hudson, memory) {
                           + (listing.progress ? ', and is ' + ("" + listing.progress).substring(0, 5) + '% complete' : '') + '</div>'
                           + (listing.description ? '<div class="count">' + listing.description + '</div>' : ''));
   };
-  
+
   var highlight = function(listing) {
     progress_highlight(listing);
   };
-  
+
   var progress_highlight = function(listing) {
     $("#" + listing.name + "--progress1").remove();
     $("#" + listing.name + "--progress2").remove();
-    
+
     if (listing.progress >= 99) {
       $("#" + listing.name).addClass(listing.state);
       fade_highlight(listing);
@@ -318,7 +328,7 @@ var Radar = function(hudson, memory) {
       $("#" + listing.name + "--progress1").fadeTo(0, 0.5);
     }
   };
-  
+
   var fade_highlight = function(listing) {
     memory.noticeEvent("Marked " + listing.name + " as over its expected finish time ");
     var itemWhenInitiallyCalled = $("#" + listing.name).get(0);
@@ -337,46 +347,46 @@ var Radar = function(hudson, memory) {
     };
     fadeOut();
   };
-  
+
   var changeState = function(listing) {
     memory.noticeEvent("Updated " + listing.name + " to status " + listing.state);
     removeAllClasses(listing, listing.state);
   };
-  
+
   var enable = function() {
-    $("#settings #settingsButton").click(function() { 
+    $("#settings #settingsButton").click(function() {
       territory.openSettingsAndThen(function(territory) {
         location.reload(true);
       });
     });
-    $("#settings #logs").click(function() { 
+    $("#settings #logs").click(function() {
       $("#logList").empty().append("<table>" + $(memory.recallEvents().reverse()).map(function() { return "<tr><td>" + dateString(this.date) + "</td><td>" + this.description + "</td></tr>" }).get().join("") + "</table>");
       $("#logList").dialog({ closeOnEscape: true, modal: true, title: "Recent activity", autoOpen: false, width: 600, height: 500 });
       $("#logList").dialog('open');
     });
-    $("#settings #state").click(function() { 
+    $("#settings #state").click(function() {
 
-      $("#stateList").empty().append("<table><tr><th>Name</th><th>State</th><th>In progress</th><th>Failures</th><th>Build</th></tr>" 
+      $("#stateList").empty().append("<table><tr><th>Name</th><th>State</th><th>In progress</th><th>Failures</th><th>Build</th></tr>"
                                      //+ prey.listings()
                                      + "<tr>Not implemented yet</tr>"
                                      + "</table>");
       $("#stateList").dialog({ closeOnEscape: true, modal: true, title: "Current state", autoOpen: false, width: 600, height: 500 });
       $("#stateList").dialog('open');
     });
-    $("#settings #open").click(function() { 
+    $("#settings #open").click(function() {
       $("#settings #open").hide();
       $("#settings #close").show();
       $("#settings .extra").delay(500).show("slide", { direction: "right" }, 2000);
       $("#settings").animate({ width: "100%" }, { duration: 2000 });
     });
-    $("#settings #close").click(function() { 
+    $("#settings #close").click(function() {
       $("#settings #close").hide()
       $("#settings #open").show();
-      $("#settings .extra").hide("slide", { direction: "left" }, 1000);      
+      $("#settings .extra").hide("slide", { direction: "left" }, 1000);
       $("#settings").animate({ width: "15%" }, { duration: 2000, complete: function() { $("#settings").css("width", "inherit"); } });
     });
-    
-    memory.addEventListener(function(event) { 
+
+    memory.addEventListener(function(event) {
       $("#settings #lastEvent").empty().append(event.description);
     });
 
@@ -385,16 +395,16 @@ var Radar = function(hudson, memory) {
     }
     $('body').removeClass('notready').addClass('ready');
   };
-  
+
   var two = function(n) { var out = "" + n; return out.length == 1 ? "0" + out : out; };
   var dateString = function(d) {
     return d.getFullYear() + "-" + two(d.getMonth() + 1) + "-" + two(d.getDate()) + " " + two(d.getHours()) + ":" + two(d.getMinutes()) + ":" + two(d.getSeconds());
   };
-  
+
   var finishedSweep = function() {
     $("#settings #lastUpdate").empty().append("Refreshed: " + dateString(new Date()));
   };
-  
+
   return { remove: remove, add: add, highlight: highlight, readd: readd, load: load, changeState: changeState, enable: enable, updatePopupDetail: updatePopupDetail, finishedSweep: finishedSweep };
 };
 
@@ -421,11 +431,11 @@ var Memory = function() {
       return null;
     }
   }
-  
+
   var hasLocalStorage = function() { return !$.browser.mozilla && !!localStorage; } ;// Firefox 3.5 has localStorage but it doesn't seem to work right....
   var localMemory = { write: function(name, value) { localStorage.setItem(name, value); }, read: function(name) { return localStorage.getItem(name); } };
-  var memory = hasLocalStorage() ? localMemory : cookieMemory; 
-  
+  var memory = hasLocalStorage() ? localMemory : cookieMemory;
+
   var events = [];
   var listeners = [];
   var addEvent = function(description) {
@@ -435,17 +445,17 @@ var Memory = function() {
     events.push(event);
     $(listeners).each(function() { this(event) });
   };
-  
+
   var getEvents = function() { return events; };
   var addListener = function(listener) { listeners.push(listener); };
-  
+
   return {
     write: memory.write,
     erase: function(name) { memory.write(name, ""); },
     read: memory.read,
     noticeEvent: addEvent,
     recallEvents: getEvents,
-    addEventListener: addListener 
+    addEventListener: addListener
   }
 };
 
@@ -458,11 +468,11 @@ var Territory = function(memory, hudson) {
       viewName: memory.read('HudsonHawk.viewName'),
       userName: memory.read('HudsonHawk.userName'),
       password: memory.read('HudsonHawk.password'),
-      refreshSeconds: 30, 
+      refreshSeconds: 30,
       giveUpAndRetrySeconds: 30
     };
   };
-  
+
   var fullDetails = function() {
     var details;
     var newDetails = $.parseJSON(memory.read('HudsonHawk'));
@@ -476,19 +486,19 @@ var Territory = function(memory, hudson) {
     } else if (newDetails) {
       details = newDetails;
     } else {
-      details = { serverUrl: "", viewName: "", userName: "", password: "", refreshSeconds: 30, giveUpAndRetrySeconds: 45 };    
+      details = { serverUrl: "", viewName: "", userName: "", password: "", refreshSeconds: 30, giveUpAndRetrySeconds: 45 };
     }
     if (details[0] && details[0].name) {
       return details;
     }
     details.refreshSeconds = 30;
-    
+
     details.giveUpAndRetrySeconds = 30;
     var newNewDetails = [{ name: "Hudson", type: "hudson", settings: details }];
     memory.write('HudsonHawk', $.toJSON(newNewDetails));
     return newNewDetails;
   };
-  
+
   var details = function() {
     return fullDetails()[0].settings;
   };
@@ -496,7 +506,7 @@ var Territory = function(memory, hudson) {
   var popupRequestForInfo = function(title, formBuilder, okCallback) {
     var popup = $('#popup');
     popup.empty();
-    popup.dialog({ 
+    popup.dialog({
       buttons: { 'OK': function() {  $(this).dialog("close"); okCallback(); } },
       hide: "slide",
       modal: true,
@@ -506,9 +516,9 @@ var Territory = function(memory, hudson) {
       closeOnEscape: true,
       title: title,
       open: function(event, ui) { formBuilder(popup); }
-    });  
+    });
   };
-  
+
   var openSettingsIfNotFilledIn = function(callbackOnOk) {
     if ($.deparam.querystring().settings) {
       var settings = $.deparam.querystring().settings;
@@ -522,53 +532,53 @@ var Territory = function(memory, hudson) {
       openSettings(callbackOnOk);
     }
   };
-  
+
   var openSettings = function(callbackOnOk) {
     if (details().serverUrl) {
       hudson.loadNew(details());
       refreshViewsOnPopup();
       refreshUsersOnPopup();
     }
-    
+
     popupRequestForInfo("Settings", settingsForm, function() {
-      var newUrl = $('#urlOption').val(); 
-      var newViewName = $('#viewOption').val(); 
+      var newUrl = $('#urlOption').val();
+      var newViewName = $('#viewOption').val();
       var newUsername = $('#userOption').val();
       var newPassword = $('#passwordOption').val();
       var newRefresh = $('#refreshOption').val();
       var newRetryAfter = $('#retryAfterOption').val();
-      
+
       memory.write('HudsonHawk', $.toJSON([{ name: "Hudson", type: "hudson", settings: {
         serverUrl: newUrl,
         viewName: newViewName,
         userName: newUsername,
         password: newPassword,
-        refreshSeconds: parseInt(newRefresh), 
+        refreshSeconds: parseInt(newRefresh),
         giveUpAndRetrySeconds: parseInt(newRetryAfter)
       }}]));
-      
+
       hudson.loadNew(details());
       callbackOnOk(details());
     });
   };
-  
+
   var generateSelect = function(id, values) {
     var selectBox = ["<select id='" + id + "'>"];
     $.each(values, function(i, value) {
       selectBox[i + 1] = "<option value='" + value + "'>" + value + "</option>";
-    });        
+    });
     selectBox.push("</select>");
     $('#' + id).replaceWith(selectBox.join(""));
   };
-  
+
   var refreshViewsOnPopup = function() {
     $('#viewOption').replaceWith("<i id='viewOption'>Refreshing views from Hudson...</i>");
     hudson.viewsFor(function(views) {
       generateSelect("viewOption", $(views).map(function() { return this.name; }));
       $('#viewOption').val(details().viewName);
     });
-  }; 
-  
+  };
+
   var refreshUsersOnPopup = function() {
     $('#userOption').replaceWith("<i id='userOption'>Refreshing users from Hudson...</i>");
     hudson.usersFor(function(users) {
@@ -576,45 +586,45 @@ var Territory = function(memory, hudson) {
       $('#userOption').val(details().userName);
     });
   };
-  
+
   var settingsForm = function(popup) {
-    var table = "<table><tbody>" 
-                + row("Hudson URL:", "<input id='urlOption' class='url' value='" + (details().serverUrl || "http://") + "'></input>") 
+    var table = "<table><tbody>"
+                + row("Hudson URL:", "<input id='urlOption' class='url' value='" + (details().serverUrl || "http://") + "'></input>")
                 + row("View:", "<i id='viewOption'>" + (details().viewName || "") + "</i>")
                 + row("User:", "<i id='userOption'>" + (details().userName || "") + "</i>")
-                + row("Password:", "<input id='passwordOption' type='password' value='" + (details().password || "") + "'></input>") 
+                + row("Password:", "<input id='passwordOption' type='password' value='" + (details().password || "") + "'></input>")
                 + row("Refresh rate (sec):", "<input id='refreshOption' value='" + (details().refreshSeconds || "30") + "'></input>")
                 + row("Retry after (sec):", "<input id='retryAfterOption' value='" + (details().giveUpAndRetrySeconds || "30") + "'></input>")
                 + "</tbody></table>";
     popup.append(table);
-    $('#urlOption').change(function() { 
+    $('#urlOption').change(function() {
       hudson.loadNew({ serverUrl: $('#urlOption').val(), userName: "", viewName: "", password: "", refreshSeconds: 30, giveUpAndRetrySeconds: 45 });
-      refreshViewsOnPopup(); 
+      refreshViewsOnPopup();
       refreshUsersOnPopup();
     });
   };
-  
+
   var row = function(prompt, formElement) {
     return "<tr><td>" + prompt + "</td><td>" + formElement + "</td></tr>";
   };
-  
+
   return { recallAndThen: openSettingsIfNotFilledIn, openSettingsAndThen: openSettings };
 };
 
 /** Hudson wrapper */
-var Hudson = function() {  
+var Hudson = function() {
   var hudsonUrl;
   var username;
   var password;
   var giveUpAndRetryAfter;
-  
+
   var ToDoList = [];
   var ToDo = function(failureRetry) {
     return {
       failureRetry: failureRetry,
     };
   };
-  
+
   var callHudsonFor = function(directory, depth, callback) {
     var timeoutIdent;
     var requestUrl = hudsonUrl + directory;
@@ -624,16 +634,16 @@ var Hudson = function() {
       dataType: 'jsonp',
       jsonp: 'jsonp',
       data: 'depth=' + depth,
-      success: function(hudson) { 
+      success: function(hudson) {
         clearTimeout(timeoutIdent);
         ToDoList = ToDoList.filter(function() { return this !== toDo; });
-        hudson.__url = requestUrl; 
-        callback(hudson); 
+        hudson.__url = requestUrl;
+        callback(hudson);
       }
     });
     timeoutIdent = setTimeout(confirmWasCompleted(toDo), giveUpAndRetryAfter * 1000);
   };
-  
+
   // This confirmation is since Hudson will sometimes drop requests, and we cannot abort or timeout $.ajax() jsonp runs...
   var confirmWasCompleted = function(toDo) {
     return function() {
@@ -642,7 +652,7 @@ var Hudson = function() {
       toDo.failureRetry();
     };
   };
-  
+
   var viewsFor = function(callback) {
     callHudsonFor("", 0, function(hudson) { callback(hudson.views); });
   };
@@ -653,16 +663,16 @@ var Hudson = function() {
 
   var failedJobsFor = function(view, callback) {
     var viewName = view ? "view/" + view + "/" : '';
-    callHudsonFor(viewName, 0, function(hudson) { 
+    callHudsonFor(viewName, 0, function(hudson) {
       var failedJobs = $(hudson.jobs).filter(function() { return this.color.indexOf('blue') !== 0; });
-      
-      var count = failedJobs.length; 
+
+      var count = failedJobs.length;
       failedJobs.each(function(i, job) {
-        callHudsonFor(viewName + "job/" + job.name + "/", 1, function(jobDetail) { 
-          job.lastCompletedBuild = jobDetail.lastCompletedBuild; 
+        callHudsonFor(viewName + "job/" + job.name + "/", 1, function(jobDetail) {
+          job.lastCompletedBuild = jobDetail.lastCompletedBuild;
           job.lastStableBuild = jobDetail.lastStableBuild;
-          if (jobDetail.lastBuild && jobDetail.lastBuild.building 
-              && jobDetail.lastBuild.builtOn && jobDetail.lastBuild.builtOn != '') 
+          if (jobDetail.lastBuild && jobDetail.lastBuild.building
+              && jobDetail.lastBuild.builtOn && jobDetail.lastBuild.builtOn != '')
           {
             count++;
             callHudsonFor('computer/' + jobDetail.lastBuild.builtOn + '/', 1, function(slaveDetail) {
@@ -670,10 +680,10 @@ var Hudson = function() {
               count--;
             });
           }
-          count--; 
-        }); 
+          count--;
+        });
       });
-      
+
       var waitUntilJobDetailIsGathered = function() {
         if (count === 0) {
           failedJobs.sort(byCompletionTimeAscending);
@@ -685,7 +695,7 @@ var Hudson = function() {
       setTimeout(waitUntilJobDetailIsGathered, 100);
     });
   };
-  
+
   var getProgressFromExecutable = function(job, jobDetail) {
     return function() {
       if (this.currentExecutable && this.currentExecutable.number === jobDetail.lastBuild.number) {
@@ -693,7 +703,7 @@ var Hudson = function() {
       }
     };
   };
-  
+
   var updateJobProgress = function(job, slaveDetail, jobDetail) {
     job.inProgress = true;
     if (!!slaveDetail.executors) {
@@ -709,7 +719,7 @@ var Hudson = function() {
       }
     }
   };
-  
+
   var deriveProgressFrom = function(jobDetail) {
     var durationTotal = 0;
     $(jobDetail.builds).each(function() {
@@ -720,13 +730,13 @@ var Hudson = function() {
     var progress = (currentDuration / averageDuration).toPrecision(2);
     return isNaN(progress) ? 0 : progress;
   }
-  
-  var byCompletionTimeAscending = function(a, b) { 
-    var aStamp = a.lastCompletedBuild ? a.lastCompletedBuild.timestamp + a.lastCompletedBuild.duration : 0; 
-    var bStamp = b.lastCompletedBuild ? b.lastCompletedBuild.timestamp + b.lastCompletedBuild.duration : 0; 
-    return aStamp - bStamp; 
+
+  var byCompletionTimeAscending = function(a, b) {
+    var aStamp = a.lastCompletedBuild ? a.lastCompletedBuild.timestamp + a.lastCompletedBuild.duration : 0;
+    var bStamp = b.lastCompletedBuild ? b.lastCompletedBuild.timestamp + b.lastCompletedBuild.duration : 0;
+    return aStamp - bStamp;
   }
-  
+
   var loadNew = function(territory) {
     var cleanerUrl = territory.serverUrl.indexOf('http') > -1 ? territory.serverUrl : "http://" + territory.serverUrl;
     hudsonUrl = cleanerUrl.charAt(cleanerUrl.length - 1) === '/' ? cleanerUrl : cleanerUrl + "/";
@@ -738,7 +748,7 @@ var Hudson = function() {
   var descriptionQueue = [];
   var changeDescription = function(jobName, buildNumber, newDescription) {
     descriptionQueue.push({ job: jobName, num: buildNumber, desc: newDescription });
-    
+
     if (!descriptionQueue.inProgress) {
       descriptionQueue.inProgress = true;
       login();
@@ -746,7 +756,7 @@ var Hudson = function() {
       setTimeout(login, 1000);
     }
   };
-  
+
   var continueTo = function(iframe, src, callback) {
     return function() {
       setTimeout(function() {
@@ -754,7 +764,7 @@ var Hudson = function() {
       }, 100);
     };
   };
-  
+
   var login = function() {
     var iframeId = "authFrame" + new Date().getTime();
     var params = { j_username: username, j_password: password, remember_me: true, from: "/" };
@@ -763,7 +773,7 @@ var Hudson = function() {
     var iframe = $('iframe#' + iframeId);
     iframe.load(continueTo(iframe, loginSrc, processDescriptionQueueWith(iframe)));
   };
-  
+
   var processDescriptionQueueWith = function(iframe) {
     if (descriptionQueue.length == 0) {
       return logoutWith(iframe);
@@ -773,7 +783,7 @@ var Hudson = function() {
       return continueTo(iframe, changeSrc, function() { processDescriptionQueueWith(iframe); });
     }
   };
-  
+
   var logoutWith = function(iframe) {
     changeDescription.loggingOut = true;
     var iframeId = iframe.id;
@@ -786,7 +796,7 @@ var Hudson = function() {
       }, 100);
     });
   };
-  
+
   return {
     viewsFor: viewsFor,
     failedJobsFor: failedJobsFor,

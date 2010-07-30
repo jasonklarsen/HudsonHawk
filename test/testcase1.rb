@@ -4,6 +4,7 @@ setup do
 end
 
 events do
+  after(5)  { change("ProjectB", :status => :being_fixed) }
   after(10)  { change("ProjectB", :status => :fixed) }
   after(20)  { change("ProjectA", :status => :broken) }
   after(30)  { change("ProjectA", :status => :flicker) }
